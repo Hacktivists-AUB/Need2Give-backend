@@ -1,5 +1,5 @@
-import db from '.';
-import { AccountTable } from './AccountTable';
+import db from './index';
+import { AccountTable } from './tables';
 
 const accounts: Omit<AccountTable, 'id'>[] = [{
   email: 'dummy@blobmail.org',

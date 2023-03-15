@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 import { Kysely, PostgresDialect } from 'kysely';
 
 import config from '../config';
-import { AccountTable } from './AccountTable';
+import { AccountTable } from './tables';
 
 interface Database {
   account: AccountTable
