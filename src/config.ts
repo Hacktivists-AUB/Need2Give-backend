@@ -8,6 +8,8 @@ interface Config {
   POSTGRES_PASSWORD: string;
   POSTGRES_DB: string;
   POSTGRES_PORT: string;
+  SERVER_PORT: string;
+  NODE_ENV?: 'production' | 'development';
 }
 
 export default process.env as unknown as Config;
