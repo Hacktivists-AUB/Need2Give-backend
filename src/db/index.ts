@@ -12,7 +12,7 @@ const db = new Kysely<Database>({
   dialect: new PostgresDialect({
     pool: new Pool({
       host: config.POSTGRES_HOST,
-      port: Number(config.POSTGRES_PORT),
+      port: config.POSTGRES_PORT,
       user: config.POSTGRES_USER,
       password: config.POSTGRES_PASSWORD,
       database: config.POSTGRES_DB,

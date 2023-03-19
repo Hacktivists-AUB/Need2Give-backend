@@ -22,6 +22,6 @@ app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-app.listen(Number(config.SERVER_PORT), () => {
+app.listen(config.SERVER_PORT, () => {
   console.log(`Listening at http://localhost:${config.SERVER_PORT}`);
 });
