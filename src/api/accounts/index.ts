@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../../db';
+import { IDValidator } from '../middlewares';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get('/', async (_req, res, next) => {
   }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', IDValidator, async (req, res, next) => {
   try {
     res.json({
       account: await db.selectFrom('account')
