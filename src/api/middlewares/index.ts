@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import z from 'zod';
 import config from '../../config';
+import { accountSchema, idSchema } from '../../db/tables';
 import { createValidator } from './requestValidator';
 
 const notFound = (req: Request, res: Response, next: NextFunction) => {
@@ -19,7 +20,16 @@ const errorHandler = (error: Error, _req: Request, res: Response, _next: NextFun
 };
 
 const IDValidator = createValidator({
-  params: z.object({ id: z.coerce.number().int().positive() }),
+  params: z.object({ id: idSchema }),
 });
 
-export { errorHandler, notFound, IDValidator };
+const signupValidator = createValidator({
+  body: accountSchema.omit({ id: true }),
+});
+
+export {
+  errorHandler,
+  notFound,
+  IDValidator,
+  signupValidator,
+};

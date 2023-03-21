@@ -1,15 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import z from 'zod';
 
-interface RequestValidator {
+interface RequestSchema {
   params?: z.AnyZodObject,
   body?: z.AnyZodObject,
   query?: z.AnyZodObject,
 }
 
-function createValidator(validator: RequestValidator) {
+function createValidator(validator: RequestSchema) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    await Promise.all((Object.keys(validator) as (keyof RequestValidator)[])
+    await Promise.all((Object.keys(validator) as (keyof RequestSchema)[])
       .map(async (field) => {
         const zodObject = validator[field];
         if (!zodObject) {
@@ -30,4 +30,4 @@ function createValidator(validator: RequestValidator) {
   };
 }
 
-export { RequestValidator, createValidator };
+export { RequestSchema, createValidator };
