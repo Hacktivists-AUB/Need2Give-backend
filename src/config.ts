@@ -11,6 +11,8 @@ const configSchema = z.object({
   POSTGRES_PORT: z.coerce.number(),
   SERVER_PORT: z.coerce.number(),
   NODE_ENV: z.enum(['production', 'development']).optional(),
+  JWT_SECRET_KEY: z.string(),
+  JWT_EXPIRY_DURATION: z.string(),
 });
 
 const config = configSchema.parse(process.env);

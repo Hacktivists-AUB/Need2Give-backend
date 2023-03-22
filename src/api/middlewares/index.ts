@@ -27,9 +27,14 @@ const signupValidator = createValidator({
   body: accountSchema.omit({ id: true }),
 });
 
+const loginValidator = createValidator({
+  body: accountSchema.pick({ email: true, password: true }),
+});
+
 export {
   errorHandler,
   notFound,
   IDValidator,
   signupValidator,
+  loginValidator,
 };
