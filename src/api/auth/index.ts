@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 
 import db from '../../db';
 import { AccountSchema } from '../../db/tables';
-import { loginValidator, signupValidator } from '../middlewares';
+import { authValidator, loginValidator, signupValidator } from '../middlewares';
 import { generateJWT, saltRounds } from './utils';
 
 const router = Router();
@@ -60,5 +60,7 @@ router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSc
     next(error);
   }
 });
+
+router.post('/test', authValidator);
 
 export default router;
