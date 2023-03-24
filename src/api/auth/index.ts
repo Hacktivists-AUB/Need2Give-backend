@@ -1,5 +1,6 @@
 import { Router, Request } from 'express';
 import bcrypt from 'bcrypt';
+import { NoResultError } from 'kysely';
 
 import db from '../../db';
 import { AccountSchema } from '../../db/tables';
@@ -17,16 +18,21 @@ router.post('/signup', signupValidator, async (req: Request<{}, {}, Omit<Account
 
     if (duplicateAccount) {
       res.status(400);
-      next(new Error('This account already exists'));
+      next(new Error((duplicateAccount.email === req.body.email)
+        ? 'This account already exists, please login'
+        : 'This username is unavailable'));
       return;
     }
 
-    const insertedAccount = await db.insertInto('account').values({
+    const { password, ...account } = await db.insertInto('account').values({
       ...req.body,
       password: await bcrypt.hash(req.body.password, saltRounds),
-    }).returning(['id']).executeTakeFirstOrThrow();
+    }).returningAll().executeTakeFirstOrThrow();
 
-    res.json({ token: generateJWT(insertedAccount.id) });
+    res.json({
+      account,
+      token: generateJWT(account.id),
+    });
   } catch (error) {
     res.status(500);
     next(error);
@@ -35,29 +41,24 @@ router.post('/signup', signupValidator, async (req: Request<{}, {}, Omit<Account
 
 router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSchema, 'email' | 'password'>>, res, next) => {
   try {
-    const account = await db.selectFrom('account').selectAll()
-      .where('email', '=', req.body.email).executeTakeFirst();
+    const { password, ...account } = await db.selectFrom('account').selectAll()
+      .where('email', '=', req.body.email).executeTakeFirstOrThrow();
 
-    if (!account) {
-      res.status(400);
-      next(new Error('Invalid email or password'));
-      return;
+    if (!await bcrypt.compare(req.body.password, password)) {
+      throw new EvalError();
     }
 
-    const passwordMatches = await bcrypt.compare(
-      req.body.password,
-      account.password,
-    );
-    if (!passwordMatches) {
-      res.status(400);
-      next(new Error('Invalid email or password'));
-      return;
-    }
-
-    res.json({ token: generateJWT(account.id) });
+    res.json({
+      account,
+      token: generateJWT(account.id),
+    });
   } catch (error) {
-    res.status(500);
-    next(error);
+    if (error instanceof NoResultError || error instanceof EvalError) {
+      res.status(400);
+      next(new Error('Invalid creadentials'));
+    } else {
+      next(error);
+    }
   }
 });
 
