@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import config from '../../config';
-import { AccountSchema } from '../../db/tables';
+import { AccountSchema } from '../../schemas';
 
 const saltRounds = 12;
 

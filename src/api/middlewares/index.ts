@@ -3,7 +3,7 @@ import z from 'zod';
 import jwt from 'jsonwebtoken';
 
 import config from '../../config';
-import { accountSchema, idSchema } from '../../db/tables';
+import { accountSchema, idSchema } from '../../schemas';
 import { createValidator } from './requestValidator';
 import db from '../../db';
 
