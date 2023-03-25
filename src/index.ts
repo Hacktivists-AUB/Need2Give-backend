@@ -1,8 +1,6 @@
-import db from './db';
+import config from './config';
+import app from './api';
 
-async function main() {
-  console.table(await db.selectFrom('account').selectAll().execute());
-  db.destroy();
-}
-
-main();
+app.listen(config.SERVER_PORT, () => {
+  console.log(`Listening at http://localhost:${config.SERVER_PORT}`);
+});
