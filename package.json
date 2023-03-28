@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "seed": "ts-node src/db/seed.ts",
+    "seed": "ts-node src/db/seed/index.ts",
     "migrate": "ts-node src/db/migrate.ts",
     "migrate:up": "ts-node src/db/migrate.ts --up",
     "migrate:down": "ts-node src/db/migrate.ts --down",
