@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { NoResultError } from 'kysely';
 
 import db from '../../db';
-import { AccountSchema } from '../../db/tables';
+import { AccountSchema } from '../../schemas';
 import { authValidator, loginValidator, signupValidator } from '../middlewares';
 import { generateJWT, saltRounds } from './utils';
 

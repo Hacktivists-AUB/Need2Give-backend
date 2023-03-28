@@ -1,7 +1,7 @@
 import db from './index';
-import { AccountTable } from './tables';
+import { AccountSchema } from '../schemas/account';
 
-const accounts: Omit<AccountTable, 'id'>[] = [{
+const accounts: Omit<AccountSchema, 'id'>[] = [{
   email: 'dummy@blobmail.org',
   username: 'lemon boy',
   phone_number: '03 123 123',
