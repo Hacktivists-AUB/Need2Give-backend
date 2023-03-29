@@ -1,15 +1,13 @@
 import { Pool } from 'pg';
-import { Generated, Kysely, PostgresDialect } from 'kysely';
+import { Kysely, PostgresDialect } from 'kysely';
 
 import config from '../config';
-import { AccountSchema } from '../schemas/account';
-
-type Table<Item, PrimaryKey extends keyof Item> = {
-  [K in keyof Item]: K extends PrimaryKey ? Generated<Item[K]> : Item[K];
-};
+import { AccountTable, UserTable, DonationCenterTable } from './tables';
 
 interface Database {
-  account: Table<AccountSchema, 'id'>;
+  account: AccountTable;
+  user: UserTable;
+  donation_center: DonationCenterTable;
 }
 
 const db = new Kysely<Database>({
