@@ -2,12 +2,15 @@ import { Pool } from 'pg';
 import { Kysely, PostgresDialect } from 'kysely';
 
 import config from '../config';
-import { AccountTable, UserTable, DonationCenterTable } from './tables';
+import {
+  AccountTable, UserTable, DonationCenterTable, ItemTable,
+} from './tables';
 
 interface Database {
   account: AccountTable;
   user: UserTable;
   donation_center: DonationCenterTable;
+  item: ItemTable;
 }
 
 const db = new Kysely<Database>({
