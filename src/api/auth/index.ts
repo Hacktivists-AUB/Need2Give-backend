@@ -1,4 +1,4 @@
-import { Router, Request } from 'express';
+import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { NoResultError } from 'kysely';
 
@@ -9,7 +9,7 @@ import { generateJWT, saltRounds } from './utils';
 
 const router = Router();
 
-router.post('/signup', signupValidator, async (req: Request<{}, {}, Omit<AccountSchema, 'id'>>, res, next) => {
+router.post('/signup', signupValidator, async (req: Request<{}, {}, Omit<AccountSchema, 'id'>>, res: Response, next) => {
   try {
     const duplicateAccount = await db.selectFrom('account').selectAll()
       .where('email', '=', req.body.email)
@@ -39,7 +39,7 @@ router.post('/signup', signupValidator, async (req: Request<{}, {}, Omit<Account
   }
 });
 
-router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSchema, 'email' | 'password'>>, res, next) => {
+router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSchema, 'email' | 'password'>>, res: Response, next) => {
   try {
     const { password, ...account } = await db.selectFrom('account').selectAll()
       .where('email', '=', req.body.email).executeTakeFirstOrThrow();
