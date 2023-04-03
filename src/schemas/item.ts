@@ -1,4 +1,3 @@
-/* eslint-disable newline-per-chained-call */
 import z from 'zod';
 import idSchema from './id';
 
@@ -8,7 +7,7 @@ const itemSchema = z.object({
   description: z.string().nullable(),
   donor: z.string(),
   status: z.string(),
-  quantity: z.number().min(0),
+  quantity: z.number().nonnegative(),
   category: z.string(),
 }).strict();
 type ItemSchema = z.infer<typeof itemSchema>;

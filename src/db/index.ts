@@ -3,7 +3,10 @@ import { Kysely, PostgresDialect } from 'kysely';
 
 import config from '../config';
 import {
-  AccountTable, UserTable, DonationCenterTable, ItemTable,
+  AccountTable,
+  UserTable,
+  DonationCenterTable,
+  ItemTable,
 } from './tables';
 
 interface Database {

@@ -1,6 +1,9 @@
 import { Generated } from 'kysely';
 import {
-  UserSchema, AccountSchema, ItemSchema, DonationCenterSchema,
+  UserSchema,
+  AccountSchema,
+  ItemSchema,
+  DonationCenterSchema,
 } from '../schemas';
 
 type Table<Item, PrimaryKey extends keyof Item> = {
