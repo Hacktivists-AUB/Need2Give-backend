@@ -12,16 +12,14 @@ export async function up(db: typeof database): Promise<void> {
     .execute();
 
   await db.schema.createTable('user')
-    .addColumn('id', 'serial', (col) => col.primaryKey())
-    .addColumn('account_id', 'integer', (col) => col.unique().notNull()
+    .addColumn('id', 'serial', (col) => col.primaryKey()
       .references('account.id').onDelete('cascade'))
     .addColumn('full_name', 'varchar(64)', (col) => col.unique().notNull())
     .addColumn('birth_date', 'date', (col) => col.notNull())
     .execute();
 
   await db.schema.createTable('donation_center')
-    .addColumn('id', 'serial', (col) => col.primaryKey())
-    .addColumn('account_id', 'integer', (col) => col.unique().notNull()
+    .addColumn('id', 'serial', (col) => col.primaryKey()
       .references('account.id').onDelete('cascade'))
     .addColumn('name', 'varchar(64)', (col) => col.unique().notNull())
     .addColumn('description', 'varchar(2048)')
@@ -58,8 +56,8 @@ export async function up(db: typeof database): Promise<void> {
 }
 
 export async function down(db: typeof database): Promise<void> {
-  await db.schema.dropTable('item_category').ifExists().execute();
   await db.schema.dropTable('item').ifExists().execute();
+  await db.schema.dropTable('item_category').ifExists().execute();
   await db.schema.dropTable('donation_center').ifExists().execute();
   await db.schema.dropTable('user').ifExists().execute();
   await db.schema.dropTable('account').ifExists().execute();

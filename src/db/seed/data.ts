@@ -34,20 +34,17 @@ const accounts: Insertable<AccountTable>[] = [{
 }];
 
 const users: Insertable<UserTable>[] = [{
-  id: 1,
-  account_id: 2,
+  id: 2,
   full_name: 'blob',
   birth_date: new Date(),
 }, {
-  id: 2,
-  account_id: 4,
+  id: 4,
   full_name: 'blobby',
   birth_date: new Date('1998-12-15'),
 }];
 
 const donationCenters: Insertable<DonationCenterTable>[] = [{
   id: 1,
-  account_id: 1,
   latitude: 1.4321,
   longitude: -1.0006509,
   name: 'Sweet tooth pharmacy 1',
@@ -56,8 +53,7 @@ const donationCenters: Insertable<DonationCenterTable>[] = [{
   closing_time: '11:30 PM',
   opening_days: { monday: true, tuesday: true, friday: true },
 }, {
-  id: 2,
-  account_id: 3,
+  id: 3,
   latitude: 3.4321,
   longitude: -3.0006509,
   name: 'Sweet tooth pharmacy 3',
@@ -79,7 +75,7 @@ const items: Insertable<ItemTable>[] = [{
   category: ItemCategories.other,
   quantity: 1,
   donor_id: 2,
-  donation_center_id: 2,
+  donation_center_id: 3,
   description: null,
 }];
 
