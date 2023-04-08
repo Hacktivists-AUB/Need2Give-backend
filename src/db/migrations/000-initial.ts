@@ -14,7 +14,7 @@ export async function up(db: typeof database): Promise<void> {
   await db.schema.createTable('user')
     .addColumn('id', 'serial', (col) => col.primaryKey()
       .references('account.id').onDelete('cascade'))
-    .addColumn('full_name', 'varchar(64)', (col) => col.unique().notNull())
+    .addColumn('full_name', 'varchar(64)', (col) => col.notNull())
     .addColumn('birth_date', 'date', (col) => col.notNull())
     .execute();
 

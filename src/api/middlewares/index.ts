@@ -1,41 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 import z from 'zod';
-import jwt, { JsonWebTokenError } from 'jsonwebtoken';
+import jwt, { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { NoResultError } from 'kysely';
 
 import config from '../../config';
-import { accountSchema, idSchema, itemSchema } from '../../schemas';
+import { idSchema, itemSchema } from '../../schemas';
 import { createValidator } from './requestValidator';
 import db from '../../db';
+import errorHandler from './errorHandler';
 
 const notFound = (req: Request, res: Response, next: NextFunction) => {
   res.status(404);
   next(new Error(`Not Found - ${req.path}`));
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const errorHandler = (error: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(error);
-  if (res.statusCode >= 200 && res.statusCode < 300) {
-    res.status(500);
-  }
-  res.json({
-    name: error.name,
-    message: error.message,
-    stack: (config.NODE_ENV === 'production') ? '' : error.stack,
-  });
-};
-
 const IDValidator = createValidator({
   params: z.object({ id: idSchema }),
-});
-
-const signupValidator = createValidator({
-  body: accountSchema.omit({ id: true }),
-});
-
-const loginValidator = createValidator({
-  body: accountSchema.pick({ email: true, password: true }),
 });
 
 const itemValidator = createValidator({
@@ -50,16 +30,16 @@ function getAuthValidator(table: 'account' | 'user' | 'donation_center') {
         config.JWT_SECRET_KEY,
       ) as jwt.JwtPayload;
 
-      const account = await db.selectFrom(table).selectAll()
+      const accountOrProfile = await db.selectFrom(table).selectAll()
         .where('id', '=', decodedToken.id)
         .executeTakeFirstOrThrow();
-      res.locals[table] = account;
+      res.locals[table] = accountOrProfile;
       next();
     } catch (error) {
-      if (error instanceof JsonWebTokenError) {
+      if (error instanceof JsonWebTokenError
+        || error instanceof TokenExpiredError
+        || error instanceof NoResultError) {
         res.status(401);
-      } else if (error instanceof NoResultError) {
-        res.status(404);
       }
       next(error);
     }
@@ -71,7 +51,5 @@ export {
   notFound,
   IDValidator,
   getAuthValidator,
-  signupValidator,
-  loginValidator,
   itemValidator,
 };
