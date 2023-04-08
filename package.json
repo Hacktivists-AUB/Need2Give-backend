@@ -10,6 +10,7 @@
     "migrate:up": "ts-node src/db/migrate.ts --up",
     "migrate:down": "ts-node src/db/migrate.ts --down",
     "migrate:latest": "ts-node src/db/migrate.ts --latest",
+    "migrate:reset": "ts-node src/db/migrate.ts --reset",
     "lint": "eslint src/ --ext .ts",
     "lint:fix": "eslint src/ --fix --ext .ts",
     "prepare": "husky install"
