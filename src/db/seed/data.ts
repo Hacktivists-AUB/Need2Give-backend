@@ -8,7 +8,7 @@ import {
   UserTable,
 } from '../tables';
 import { ItemCategories } from '../../schemas/itemCategory';
-import { saltRounds } from '../../api/auth/utils';
+import { saltRounds } from '../../api/utils';
 
 async function get() {
   const accounts: Insertable<AccountTable>[] = [{

@@ -1,12 +1,16 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { FileMigrationProvider, Migrator } from 'kysely';
+import { FileMigrationProvider, Migrator, NO_MIGRATIONS } from 'kysely';
 import db from '.';
 
 const flags = {
   '--up': (m: Migrator) => m.migrateUp(),
   '--down': (m: Migrator) => m.migrateDown(),
   '--latest': (m: Migrator) => m.migrateToLatest(),
+  '--reset': async (m: Migrator) => {
+    const result = await m.migrateTo(NO_MIGRATIONS);
+    return (result.error) ? result : m.migrateToLatest();
+  },
 };
 
 const helpText = `Usage:
@@ -15,7 +19,8 @@ npm run migrate:[ACTION]
 Action:
   latest        Migrate to latest
   up            Migrate up
-  down          Migrate down`;
+  down          Migrate down
+  reset         Migrate all the way down then to latest`;
 
 async function main() {
   const migrator = new Migrator({
