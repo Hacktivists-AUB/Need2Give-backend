@@ -1,4 +1,6 @@
+import { sql } from 'kysely';
 import database from '../index';
+import { ItemCategories } from '../../schemas/itemCategory';
 
 export async function up(db: typeof database): Promise<void> {
   await db.schema.createTable('account')
@@ -10,16 +12,14 @@ export async function up(db: typeof database): Promise<void> {
     .execute();
 
   await db.schema.createTable('user')
-    .addColumn('id', 'serial', (col) => col.primaryKey())
-    .addColumn('account_id', 'integer', (col) => col.unique().notNull()
+    .addColumn('id', 'serial', (col) => col.primaryKey()
       .references('account.id').onDelete('cascade'))
     .addColumn('full_name', 'varchar(64)', (col) => col.unique().notNull())
     .addColumn('birth_date', 'date', (col) => col.notNull())
     .execute();
 
   await db.schema.createTable('donation_center')
-    .addColumn('id', 'serial', (col) => col.primaryKey())
-    .addColumn('account_id', 'integer', (col) => col.unique().notNull()
+    .addColumn('id', 'serial', (col) => col.primaryKey()
       .references('account.id').onDelete('cascade'))
     .addColumn('name', 'varchar(64)', (col) => col.unique().notNull())
     .addColumn('description', 'varchar(2048)')
@@ -29,9 +29,35 @@ export async function up(db: typeof database): Promise<void> {
     .addColumn('opening_time', 'time(0)', (col) => col.notNull())
     .addColumn('closing_time', 'time(0)', (col) => col.notNull())
     .execute();
+
+  await db.schema.createTable('item_category')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('name', 'varchar(64)', (col) => col.notNull().unique())
+    .execute();
+
+  await db.schema.createTable('item')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('name', 'varchar(64)', (col) => col.notNull())
+    .addColumn('description', 'varchar(2048)')
+    .addColumn('donor_id', 'integer', (col) => col
+      .references('user.id').onDelete('set null'))
+    .addColumn('donation_center_id', 'integer', (col) => col
+      .references('donation_center.id').onDelete('cascade'))
+    .addColumn('quantity', 'integer', (col) => col.check(sql`quantity >= 0`).notNull())
+    .addColumn('category', 'varchar(32)', (col) => col.notNull()
+      .defaultTo(ItemCategories.other)
+      .references('item_category.name')
+      .onDelete('set default'))
+    .execute();
+
+  await db.insertInto('item_category').values(
+    (Object.values(ItemCategories)).map((name) => ({ name })),
+  ).execute();
 }
 
 export async function down(db: typeof database): Promise<void> {
+  await db.schema.dropTable('item').ifExists().execute();
+  await db.schema.dropTable('item_category').ifExists().execute();
   await db.schema.dropTable('donation_center').ifExists().execute();
   await db.schema.dropTable('user').ifExists().execute();
   await db.schema.dropTable('account').ifExists().execute();

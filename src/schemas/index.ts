@@ -1,6 +1,7 @@
 import { accountSchema, AccountSchema } from './account';
 import { donationCenterSchema, DonationCenterSchema } from './donationCenter';
 import { userSchema, UserSchema } from './user';
+import { itemSchema, ItemSchema } from './item';
 import idSchema from './id';
 
 export {
@@ -10,5 +11,7 @@ export {
   DonationCenterSchema,
   userSchema,
   UserSchema,
+  itemSchema,
+  ItemSchema,
   idSchema,
 };

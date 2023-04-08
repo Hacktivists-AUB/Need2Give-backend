@@ -2,13 +2,21 @@ import { Pool } from 'pg';
 import { Kysely, PostgresDialect } from 'kysely';
 
 import config from '../config';
-import { AccountTable, UserTable, DonationCenterTable } from './tables';
+import {
+  AccountTable,
+  UserTable,
+  DonationCenterTable,
+  ItemTable,
+  ItemCategoryTable,
+} from './tables';
 
-interface Database {
+type Database = {
   account: AccountTable;
   user: UserTable;
   donation_center: DonationCenterTable;
-}
+  item: ItemTable;
+  item_category: ItemCategoryTable;
+};
 
 const db = new Kysely<Database>({
   dialect: new PostgresDialect({
@@ -23,3 +31,4 @@ const db = new Kysely<Database>({
 });
 
 export default db;
+export { Database };

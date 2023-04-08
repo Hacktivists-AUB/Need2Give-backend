@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import db from '../../db';
-import { authValidator, IDValidator } from '../middlewares';
+import { getAuthValidator, IDValidator } from '../middlewares';
 
 const router = Router();
 
-router.get('/', authValidator, async (_req, res, next) => {
+router.get('/', getAuthValidator('donation_center'), async (_req, res, next) => {
   try {
     res.json({
       accounts: await db.selectFrom('account').selectAll().execute(),
@@ -14,7 +14,7 @@ router.get('/', authValidator, async (_req, res, next) => {
   }
 });
 
-router.get('/:id', authValidator, IDValidator, async (req, res, next) => {
+router.get('/:id', getAuthValidator('donation_center'), IDValidator, async (req, res, next) => {
   try {
     res.json({
       account: await db.selectFrom('account')
