@@ -11,7 +11,7 @@ import {
   donationCenterSchema,
   userSchema,
 } from '../../schemas';
-import { getAuthValidator } from '../middlewares';
+import { IDValidator, getAuthValidator } from '../middlewares';
 import { generateJWT, saltRounds, getDuplicateProperty } from '../utils';
 import { createValidator } from '../middlewares/requestValidator';
 
@@ -103,5 +103,24 @@ router.get('/test', getAuthValidator('account'), async (_req, res) => {
     status: 'Authorized',
   });
 });
+
+router.delete(
+  '/:id',
+  IDValidator,
+  loginValidator,
+  async (req: Request<{ id: string }, {}, Pick<AccountSchema, 'email' | 'password'>>, res: Response, next) => {
+    try {
+      const { password, ...account } = await db.deleteFrom('account')
+        .where('id', '=', Number(req.params.id))
+        .returningAll().executeTakeFirstOrThrow();
+      res.json({ account });
+    } catch (error) {
+      if (error instanceof NoResultError) {
+        res.status(404);
+      }
+      next(error);
+    }
+  },
+);
 
 export default router;
