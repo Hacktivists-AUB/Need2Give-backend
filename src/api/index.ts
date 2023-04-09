@@ -1,6 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
 import accounts from './accounts';
+import donationCenters from './donationCenters';
 import auth from './auth';
 import items from './items';
 import { errorHandler, notFound } from './middlewares';
@@ -10,6 +11,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.use('/accounts', accounts);
+app.use('/donation_centers', donationCenters);
 app.use('/auth', auth);
 app.use('/items', items);
 
