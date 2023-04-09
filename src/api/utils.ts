@@ -11,9 +11,9 @@ import db from '../db';
 
 const saltRounds = 12;
 
-function generateJWT(accountID: AccountSchema['id']) {
+function generateJWT(accountID: AccountSchema['id'], role: 'user' | 'donation_center') {
   return jwt.sign(
-    { id: accountID },
+    { id: accountID, role },
     config.JWT_SECRET_KEY,
     { expiresIn: config.JWT_EXPIRY_DURATION },
   );
@@ -21,7 +21,6 @@ function generateJWT(accountID: AccountSchema['id']) {
 
 function getDuplicateProperty(error: DatabaseError) {
   if (!error.detail) return null;
-  console.log(error.detail);
   const matches = /Key \(([\w]+)\)=\((.+)\) already exists\./.exec(error.detail);
   return (matches === null) ? null : matches[1];
 }

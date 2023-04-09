@@ -3,9 +3,8 @@ import { NoResultError } from 'kysely';
 import { DatabaseError } from 'pg';
 
 import { getDonationCenterQuery } from '../utils';
-import { IDValidator, getAuthValidator } from '../middlewares';
+import { IDValidator, getAuthValidator, createValidator } from '../middlewares';
 import { DonationCenterSchema, donationCenterSchema } from '../../schemas';
-import { createValidator } from '../middlewares/requestValidator';
 import db from '../../db';
 
 const router = Router();
@@ -41,8 +40,8 @@ router.patch(
   async (req: Request<{}, {}, Omit<DonationCenterSchema, 'id'>>, res: Response, next) => {
     try {
       res.json({
-        item: await db.updateTable('donation_center').set(req.body)
-          .where('id', '=', res.locals.donation_center.id)
+        profile: await db.updateTable('donation_center').set(req.body)
+          .where('id', '=', res.locals.profile.id)
           .returningAll()
           .executeTakeFirstOrThrow(),
       });

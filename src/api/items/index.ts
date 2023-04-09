@@ -38,7 +38,7 @@ router.post(
   itemValidator,
   async (req: Request<{}, {}, Omit<ItemSchema, 'id'>>, res: Response, next) => {
     try {
-      if (req.body.donation_center_id !== res.locals.donation_center.id) {
+      if (req.body.donation_center_id !== res.locals.profile.id) {
         res.status(403);
         throw new Error('Forbidden');
       }
@@ -67,7 +67,7 @@ router.patch(
       res.json({
         item: await db.updateTable('item').set(req.body)
           .where('id', '=', Number(req.params.id))
-          .where('donation_center_id', '=', res.locals.donation_center.id)
+          .where('donation_center_id', '=', res.locals.profile.id)
           .returningAll()
           .executeTakeFirstOrThrow(),
       });
@@ -94,7 +94,7 @@ router.delete(
       res.json({
         item: await db.deleteFrom('item')
           .where('item.id', '=', Number(req.params.id))
-          .where('donation_center_id', '=', res.locals.donation_center.id)
+          .where('donation_center_id', '=', res.locals.profile.id)
           .returningAll()
           .executeTakeFirstOrThrow(),
       });
