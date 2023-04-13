@@ -9,6 +9,7 @@ export async function up(db: typeof database): Promise<void> {
     .addColumn('phone_number', 'varchar(32)')
     .addColumn('username', 'varchar(64)', (col) => col.unique().notNull())
     .addColumn('password', 'varchar(128)', (col) => col.notNull())
+    .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`NOW()`))
     .execute();
 
   await db.schema.createTable('user')
@@ -48,6 +49,7 @@ export async function up(db: typeof database): Promise<void> {
       .defaultTo(ItemCategories.other)
       .references('item_category.name')
       .onDelete('set default'))
+    .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`NOW()`))
     .execute();
 
   await db.insertInto('item_category').values(

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import z from 'zod';
 
-import { idSchema, itemSchema } from '../../schemas';
+import { idSchema } from '../../schemas';
 import { createValidator, RequestSchema } from './requestValidator';
 import errorHandler from './errorHandler';
 import getAuthValidator from './getAuthValidator';
@@ -15,16 +15,11 @@ const IDValidator = createValidator({
   params: z.object({ id: idSchema }),
 });
 
-const itemValidator = createValidator({
-  body: itemSchema.omit({ id: true }),
-});
-
 export {
   errorHandler,
   notFound,
   IDValidator,
   getAuthValidator,
-  itemValidator,
   createValidator,
   RequestSchema,
 };

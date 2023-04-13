@@ -7,14 +7,14 @@ import {
 } from '../schemas';
 import { ItemCategorySchema } from '../schemas/itemCategory';
 
-type Table<Item, PrimaryKey extends keyof Item> = {
-  [K in keyof Item]: K extends PrimaryKey ? Generated<Item[K]> : Item[K];
+type Table<Item, GeneratedColumns extends keyof Item> = {
+  [K in keyof Item]: K extends GeneratedColumns ? Generated<Item[K]> : Item[K];
 };
 
-type AccountTable = Table<AccountSchema, 'id'>;
+type AccountTable = Table<AccountSchema, 'id' | 'created_at'>;
 type UserTable = Table<UserSchema, 'id'>;
 type DonationCenterTable = Table<DonationCenterSchema, 'id'>;
-type ItemTable = Table<ItemSchema, 'id'>;
+type ItemTable = Table<ItemSchema, 'id' | 'created_at'>;
 type ItemCategoryTable = Table<ItemCategorySchema, 'id'>;
 
 export {

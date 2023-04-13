@@ -10,6 +10,7 @@ const itemSchema = z.object({
   donation_center_id: idSchema,
   quantity: z.coerce.number().nonnegative(),
   category: itemCategorySchema.shape.name,
+  created_at: z.coerce.date(),
 }).strict();
 type ItemSchema = z.infer<typeof itemSchema>;
 

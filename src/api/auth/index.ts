@@ -18,7 +18,7 @@ import { createValidator } from '../middlewares/requestValidator';
 const router = Router();
 
 const signupBodySchema = z.object({
-  account: accountSchema.omit({ id: true }),
+  account: accountSchema.omit({ id: true, created_at: true }),
   profile: donationCenterSchema.omit({ id: true }).or(userSchema.omit({ id: true })),
 });
 const signupQuerySchema = z.object({
@@ -84,16 +84,6 @@ router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSc
       throw new EvalError();
     }
 
-    console.log(
-      await db.selectFrom('user')
-        .where('user.id', '=', account.id)
-        .execute(),
-    );
-    console.log(
-      await db.selectFrom('user')
-        .where('user.id', '=', account.id)
-        .executeTakeFirst(),
-    );
     const role = (await db.selectFrom('user')
       .where('user.id', '=', account.id)
       .executeTakeFirst()) === undefined ? 'donation_center' : 'user';

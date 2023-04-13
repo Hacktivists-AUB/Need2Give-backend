@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { NoResultError } from 'kysely';
 import { DatabaseError } from 'pg';
+import z from 'zod';
 
 import db from '../../db';
-import { IDValidator, getAuthValidator, itemValidator } from '../middlewares';
-import { ItemSchema, itemSchema } from '../../schemas';
+import { IDValidator, getAuthValidator } from '../middlewares';
+import { ItemSchema, idSchema, itemSchema } from '../../schemas';
 import { createValidator } from '../middlewares/requestValidator';
 
 const router = Router();
@@ -32,10 +33,14 @@ router.get('/:id', IDValidator, async (req, res, next) => {
   }
 });
 
+const insertableItemSchema = itemSchema.omit({ id: true, created_at: true });
+
 router.post(
   '/',
   getAuthValidator('donation_center'),
-  itemValidator,
+  createValidator({
+    body: insertableItemSchema,
+  }),
   async (req: Request<{}, {}, Omit<ItemSchema, 'id'>>, res: Response, next) => {
     try {
       if (req.body.donation_center_id !== res.locals.profile.id) {
@@ -60,8 +65,10 @@ router.post(
 router.patch(
   '/:id',
   getAuthValidator('donation_center'),
-  IDValidator,
-  createValidator({ body: itemSchema.omit({ id: true }).partial() }),
+  createValidator({
+    params: z.object({ id: idSchema }),
+    body: insertableItemSchema.partial(),
+  }),
   async (req: Request<{ id: string }, {}, Omit<ItemSchema, 'id'>>, res, next) => {
     try {
       res.json({
