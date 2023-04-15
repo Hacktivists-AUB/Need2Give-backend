@@ -1,13 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import z from 'zod';
-import jwt, { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import { NoResultError } from 'kysely';
 
-import config from '../../config';
-import { idSchema, itemSchema } from '../../schemas';
-import { createValidator } from './requestValidator';
-import db from '../../db';
+import { idSchema } from '../../schemas';
+import { createValidator, RequestSchema } from './requestValidator';
 import errorHandler from './errorHandler';
+import getAuthValidator from './getAuthValidator';
 
 const notFound = (req: Request, res: Response, next: NextFunction) => {
   res.status(404);
@@ -18,38 +15,11 @@ const IDValidator = createValidator({
   params: z.object({ id: idSchema }),
 });
 
-const itemValidator = createValidator({
-  body: itemSchema.omit({ id: true }),
-});
-
-function getAuthValidator(table: 'account' | 'user' | 'donation_center') {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const decodedToken = jwt.verify(
-        req.headers.authorization!,
-        config.JWT_SECRET_KEY,
-      ) as jwt.JwtPayload;
-
-      const accountOrProfile = await db.selectFrom(table).selectAll()
-        .where('id', '=', decodedToken.id)
-        .executeTakeFirstOrThrow();
-      res.locals[table] = accountOrProfile;
-      next();
-    } catch (error) {
-      if (error instanceof JsonWebTokenError
-        || error instanceof TokenExpiredError
-        || error instanceof NoResultError) {
-        res.status(401);
-      }
-      next(error);
-    }
-  };
-}
-
 export {
   errorHandler,
   notFound,
   IDValidator,
   getAuthValidator,
-  itemValidator,
+  createValidator,
+  RequestSchema,
 };

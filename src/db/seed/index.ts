@@ -1,21 +1,6 @@
 import db from '../index';
 import data from './data';
-import { getRandom } from './utils';
-
-async function deleteTableData() {
-  await db.deleteFrom('account').execute();
-  await db.deleteFrom('user').execute();
-  await db.deleteFrom('donation_center').execute();
-  await db.deleteFrom('item').execute();
-}
-
-async function logTableData() {
-  console.table(await db.selectFrom('account').selectAll().execute());
-  console.table(await db.selectFrom('user').selectAll().execute());
-  console.table(await db.selectFrom('donation_center').selectAll().execute());
-  console.table(await db.selectFrom('item').selectAll().execute());
-  console.table(await db.selectFrom('item_category').selectAll().execute());
-}
+import { deleteTableData, getRandom, logTableData } from '../utils';
 
 async function seed() {
   await deleteTableData();
@@ -50,7 +35,7 @@ async function seed() {
   });
   console.log('Seeding ended successfully!');
   await logTableData();
-  db.destroy();
+  await db.destroy();
 }
 
 seed();

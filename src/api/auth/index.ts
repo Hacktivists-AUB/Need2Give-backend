@@ -11,14 +11,14 @@ import {
   donationCenterSchema,
   userSchema,
 } from '../../schemas';
-import { IDValidator, getAuthValidator } from '../middlewares';
+import { getAuthValidator } from '../middlewares';
 import { generateJWT, saltRounds, getDuplicateProperty } from '../utils';
 import { createValidator } from '../middlewares/requestValidator';
 
 const router = Router();
 
 const signupBodySchema = z.object({
-  account: accountSchema.omit({ id: true }),
+  account: accountSchema.omit({ id: true, created_at: true }),
   profile: donationCenterSchema.omit({ id: true }).or(userSchema.omit({ id: true })),
 });
 const signupQuerySchema = z.object({
@@ -48,14 +48,14 @@ router.post(
         }).returningAll().executeTakeFirstOrThrow();
 
         return {
-          account: insertedAccount,
-          profile: insertedProfile,
+          ...insertedAccount,
+          ...insertedProfile,
         };
       });
 
       res.json({
-        ...inserted,
-        token: generateJWT(inserted.account.id),
+        profile: inserted,
+        token: generateJWT(inserted.id, req.query.role),
       });
     } catch (error) {
       if (error instanceof DatabaseError) {
@@ -84,9 +84,13 @@ router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSc
       throw new EvalError();
     }
 
+    const role = (await db.selectFrom('user')
+      .where('user.id', '=', account.id)
+      .executeTakeFirst()) === undefined ? 'donation_center' : 'user';
+
     res.json({
       account,
-      token: generateJWT(account.id),
+      token: generateJWT(account.id, role),
     });
   } catch (error) {
     if (error instanceof NoResultError || error instanceof EvalError) {
@@ -100,18 +104,18 @@ router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSc
 
 router.get('/test', getAuthValidator('account'), async (_req, res) => {
   res.json({
+    profile: res.locals.profile,
     status: 'Authorized',
   });
 });
 
 router.delete(
-  '/:id',
-  IDValidator,
+  '/',
   loginValidator,
-  async (req: Request<{ id: string }, {}, Pick<AccountSchema, 'email' | 'password'>>, res: Response, next) => {
+  async (req: Request<{}, {}, Pick<AccountSchema, 'email' | 'password'>>, res: Response, next) => {
     try {
       const { password, ...account } = await db.deleteFrom('account')
-        .where('id', '=', Number(req.params.id))
+        .where('email', '=', req.body.email)
         .returningAll().executeTakeFirstOrThrow();
       res.json({ account });
     } catch (error) {
