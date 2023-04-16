@@ -15,7 +15,7 @@ enum ItemCategories {
 
 const itemCategorySchema = z.object({
   id: idSchema,
-  name: z.string().min(2).max(64),
+  name: z.string().min(2).max(64).regex(/^[a-z0-9\s]*$/i),
 }).strict();
 type ItemCategorySchema = z.infer<typeof itemCategorySchema>;
 
