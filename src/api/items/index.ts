@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { NoResultError } from 'kysely';
+import { NoResultError, sql } from 'kysely';
 import { DatabaseError } from 'pg';
 import z from 'zod';
 
@@ -10,13 +10,55 @@ import { createValidator } from '../middlewares/requestValidator';
 
 const router = Router();
 
-router.get('/', async (_req, res, next) => {
-  try {
-    res.json({ items: await db.selectFrom('item').selectAll().execute() });
-  } catch (error) {
-    next(error);
-  }
-});
+const itemSearchSchema = z.object({
+  name: z.string().trim(),
+  min_quantity: itemSchema.shape.quantity,
+  max_quantity: itemSchema.shape.quantity,
+  categories: z.preprocess(
+    (str) => String(str).split(','),
+    z.array(itemSchema.shape.category),
+  ),
+  ...itemSchema.pick({
+    donor_id: true,
+    donation_center_id: true,
+  }).shape,
+}).partial()
+  .refine((obj) => (obj.min_quantity ?? 0) <= (obj.max_quantity ?? Infinity));
+
+router.get(
+  '/',
+  createValidator({
+    query: itemSearchSchema,
+  }),
+  async (req: Request<{}, {}, {}, z.infer<typeof itemSearchSchema>>, res, next) => {
+    try {
+      res.json({
+        items: await db.selectFrom('item').selectAll()
+          .$if(
+            !!req.query.categories,
+            (qb) => qb.where('category', 'in', req.query.categories!),
+          ).$if(
+            !!req.query.min_quantity,
+            (qb) => qb.where('quantity', '>=', req.query.min_quantity!),
+          ).$if(
+            !!req.query.max_quantity,
+            (qb) => qb.where('quantity', '<=', req.query.max_quantity!),
+          ).$if(
+            !!req.query.donor_id,
+            (qb) => qb.where('donor_id', '=', req.query.donor_id!),
+          ).$if(
+            !!req.query.donation_center_id,
+            (qb) => qb.where('donation_center_id', '=', req.query.donation_center_id!),
+          ).$if(
+            !!req.query.name,
+            (qb) => qb.where(sql`name <<<-> ${req.query.name} < 0.8`),
+          ).execute(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 router.get('/:id', IDValidator, async (req, res, next) => {
   try {
