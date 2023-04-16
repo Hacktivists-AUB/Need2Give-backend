@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { NoResultError, sql } from 'kysely';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { DatabaseError } from 'pg';
 import z from 'zod';
 
@@ -51,8 +52,18 @@ router.get(
             (qb) => qb.where('donation_center_id', '=', req.query.donation_center_id!),
           ).$if(
             !!req.query.name,
-            (qb) => qb.where(sql`name <<<-> ${req.query.name} < 0.8`),
-          ).execute(),
+            (qb) => qb.where(sql`item.name <<<-> ${req.query.name} < 0.8`)
+              .orderBy(sql`item.name <<<-> ${req.query.name}`, 'asc'),
+          )
+          .select((eb) => [
+            jsonObjectFrom(
+              eb.selectFrom('donation_center')
+                .selectAll()
+                .whereRef('donation_center.id', '=', 'item.donation_center_id'),
+            ).as('donation_center'),
+          ])
+          .orderBy('item.created_at', 'asc')
+          .execute(),
       });
     } catch (error) {
       next(error);
