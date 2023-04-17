@@ -18,8 +18,8 @@ const donationCenterSchema = z.object({
   }).strict(),
   opening_time: z.string().trim(),
   closing_time: z.string().trim(),
-  latitude: z.number(),
-  longitude: z.number(),
+  latitude: z.coerce.number(),
+  longitude: z.coerce.number(),
 }).strict();
 type DonationCenterSchema = z.infer<typeof donationCenterSchema>;
 

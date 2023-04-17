@@ -1,23 +1,31 @@
 import { Router, Request, Response } from 'express';
 import { NoResultError } from 'kysely';
 import { DatabaseError } from 'pg';
+import z from 'zod';
 
 import { getDonationCenterQuery } from '../utils';
 import { IDValidator, getAuthValidator, createValidator } from '../middlewares';
 import { DonationCenterSchema, donationCenterSchema } from '../../schemas';
 import db from '../../db';
+import { donationCenterSearchSchema, getQueryFromSearchSettings } from './utils';
 
 const router = Router();
 
-router.get('/', async (_req, res, next) => {
-  try {
-    res.json({
-      donation_centers: await getDonationCenterQuery().execute(),
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get(
+  '/',
+  createValidator({
+    query: donationCenterSearchSchema,
+  }),
+  async (req: Request<{}, {}, {}, z.infer<typeof donationCenterSearchSchema>>, res, next) => {
+    try {
+      res.json({
+        donation_centers: await getQueryFromSearchSettings(req.query).execute(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 router.get('/:id', IDValidator, async (req, res, next) => {
   try {
