@@ -4,10 +4,10 @@ import { DatabaseError } from 'pg';
 import z from 'zod';
 
 import { getDonationCenterQuery } from '../utils';
-import { IDValidator, getAuthValidator, createValidator } from '../middlewares';
-import { DonationCenterSchema, donationCenterSchema } from '../../schemas';
+import { getAuthValidator, createValidator } from '../middlewares';
+import { DonationCenterSchema, donationCenterSchema, idSchema } from '../../schemas';
 import db from '../../db';
-import { donationCenterSearchSchema, getQueryFromSearchSettings } from './utils';
+import { distanceExpression, donationCenterSearchSchema, getQueryFromSearchSettings } from './utils';
 
 const router = Router();
 
@@ -27,11 +27,23 @@ router.get(
   },
 );
 
-router.get('/:id', IDValidator, async (req, res, next) => {
+router.get('/:id', createValidator({
+  params: z.object({ id: idSchema }),
+  query: donationCenterSchema.pick({ latitude: true, longitude: true })
+    .or(z.object({})),
+}), async (req, res, next) => {
   try {
     res.json({
       donation_center:
-        await getDonationCenterQuery(Number(req.params.id)).executeTakeFirstOrThrow(),
+        await getDonationCenterQuery(Number(req.params.id))
+          .$if(
+            req.query.latitude !== undefined && req.query.longitude !== undefined,
+            (qb) => qb.select(
+              distanceExpression(Number(req.query.latitude), Number(req.query.longitude))
+                .as('distance'),
+            ),
+          )
+          .executeTakeFirstOrThrow(),
     });
   } catch (error) {
     if (error instanceof NoResultError) {
