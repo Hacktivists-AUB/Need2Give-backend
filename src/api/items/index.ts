@@ -15,6 +15,8 @@ const itemSearchSchema = z.object({
   name: z.string().trim(),
   min_quantity: itemSchema.shape.quantity,
   max_quantity: itemSchema.shape.quantity,
+  limit: z.coerce.number().positive(),
+  offset: z.coerce.number().positive(),
   categories: z.preprocess(
     (str) => String(str).split(','),
     z.array(itemSchema.shape.category),
@@ -26,6 +28,46 @@ const itemSearchSchema = z.object({
 }).partial()
   .refine((obj) => (obj.min_quantity ?? 0) <= (obj.max_quantity ?? Infinity));
 
+function getQueryFromSearchSettings(settings: z.infer<typeof itemSearchSchema>) {
+  let query = db.selectFrom('item').selectAll()
+    .select((eb) => [
+      jsonObjectFrom(
+        eb.selectFrom('donation_center')
+          .selectAll()
+          .whereRef('donation_center.id', '=', 'item.donation_center_id'),
+      ).as('donation_center'),
+    ]);
+  // I don't use chaining because the LSP says: Type instantiation is
+  // excessively deep and possibly infinite
+  if (settings.categories) {
+    query = query.where('category', 'in', settings.categories);
+  }
+  if (settings.min_quantity) {
+    query = query.where('quantity', '>=', settings.min_quantity);
+  }
+  if (settings.max_quantity) {
+    query = query.where('quantity', '<=', settings.max_quantity);
+  }
+  if (settings.donor_id) {
+    query = query.where('donor_id', '=', settings.donor_id);
+  }
+  if (settings.donation_center_id) {
+    query = query.where('donation_center_id', '=', settings.donation_center_id);
+  }
+  if (settings.name) {
+    query = query
+      .where(sql`item.name <<<-> ${settings.name} < 0.8`)
+      .orderBy(sql`item.name <<<-> ${settings.name}`, 'asc');
+  }
+  if (settings.limit) {
+    query = query.limit(settings.limit);
+  }
+  if (settings.offset) {
+    query = query.offset(settings.offset);
+  }
+  return query.orderBy('item.created_at', 'asc');
+}
+
 router.get(
   '/',
   createValidator({
@@ -34,36 +76,7 @@ router.get(
   async (req: Request<{}, {}, {}, z.infer<typeof itemSearchSchema>>, res, next) => {
     try {
       res.json({
-        items: await db.selectFrom('item').selectAll()
-          .$if(
-            !!req.query.categories,
-            (qb) => qb.where('category', 'in', req.query.categories!),
-          ).$if(
-            !!req.query.min_quantity,
-            (qb) => qb.where('quantity', '>=', req.query.min_quantity!),
-          ).$if(
-            !!req.query.max_quantity,
-            (qb) => qb.where('quantity', '<=', req.query.max_quantity!),
-          ).$if(
-            !!req.query.donor_id,
-            (qb) => qb.where('donor_id', '=', req.query.donor_id!),
-          ).$if(
-            !!req.query.donation_center_id,
-            (qb) => qb.where('donation_center_id', '=', req.query.donation_center_id!),
-          ).$if(
-            !!req.query.name,
-            (qb) => qb.where(sql`item.name <<<-> ${req.query.name} < 0.8`)
-              .orderBy(sql`item.name <<<-> ${req.query.name}`, 'asc'),
-          )
-          .select((eb) => [
-            jsonObjectFrom(
-              eb.selectFrom('donation_center')
-                .selectAll()
-                .whereRef('donation_center.id', '=', 'item.donation_center_id'),
-            ).as('donation_center'),
-          ])
-          .orderBy('item.created_at', 'asc')
-          .execute(),
+        items: await getQueryFromSearchSettings(req.query).execute(),
       });
     } catch (error) {
       next(error);
