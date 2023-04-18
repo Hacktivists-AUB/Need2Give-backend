@@ -4,6 +4,7 @@ import { NoResultError } from 'kysely';
 import z from 'zod';
 import { DatabaseError } from 'pg';
 import nodemailer from 'nodemailer';
+import config from '../../config';
 
 import db from '../../db';
 import {
@@ -33,8 +34,8 @@ const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
   auth: {
-    user: process.env.EMAIL_USER, // Your Gmail email address from environment variable
-    pass: process.env.EMAIL_PASS, // Your Gmail password or app password from env
+    user: config.EMAIL_USER, // Your Gmail email address from environment variable
+    pass: config.EMAIL_PASS, // Your Gmail password or app password from env
   },
 });
 

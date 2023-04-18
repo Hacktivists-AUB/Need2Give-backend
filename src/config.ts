@@ -13,6 +13,8 @@ const configSchema = z.object({
   NODE_ENV: z.enum(['production', 'development']).optional(),
   JWT_SECRET_KEY: z.string(),
   JWT_EXPIRY_DURATION: z.string(),
+  EMAIL_USER: z.string(),
+  EMAIL_PASS: z.string(),
 });
 
 const config = configSchema.parse(process.env);
