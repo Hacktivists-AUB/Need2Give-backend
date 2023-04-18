@@ -55,12 +55,25 @@ export async function up(db: typeof database): Promise<void> {
   await db.insertInto('item_category').values(
     (Object.values(ItemCategories)).map((name) => ({ name })),
   ).execute();
+
+  await db.schema.createTable('pending_donation_center')
+    .addColumn('id', 'integer', (col) => col.primaryKey()
+      .references('account.id').onDelete('cascade'))
+    .addColumn('name', 'varchar(64)', (col) => col.unique().notNull())
+    .addColumn('description', 'varchar(2048)')
+    .addColumn('latitude', 'float8', (col) => col.notNull())
+    .addColumn('longitude', 'float8', (col) => col.notNull())
+    .addColumn('opening_days', 'jsonb', (col) => col.notNull())
+    .addColumn('opening_time', 'time(0)', (col) => col.notNull())
+    .addColumn('closing_time', 'time(0)', (col) => col.notNull())
+    .execute();
 }
 
 export async function down(db: typeof database): Promise<void> {
   await db.schema.dropTable('item').ifExists().execute();
   await db.schema.dropTable('item_category').ifExists().execute();
   await db.schema.dropTable('donation_center').ifExists().execute();
+  await db.schema.dropTable('pending_donation_center').ifExists().execute();
   await db.schema.dropTable('user').ifExists().execute();
   await db.schema.dropTable('account').ifExists().execute();
 }

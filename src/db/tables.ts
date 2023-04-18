@@ -14,6 +14,7 @@ type Table<Item, GeneratedColumns extends keyof Item> = {
 type AccountTable = Table<AccountSchema, 'id' | 'created_at'>;
 type UserTable = Table<UserSchema, 'id'>;
 type DonationCenterTable = Table<DonationCenterSchema, 'id'>;
+type PendingDonationCenterTable = Table<DonationCenterSchema, 'id'>;
 type ItemTable = Table<ItemSchema, 'id' | 'created_at'>;
 type ItemCategoryTable = Table<ItemCategorySchema, 'id'>;
 
@@ -22,6 +23,7 @@ export {
   AccountTable,
   UserTable,
   DonationCenterTable,
+  PendingDonationCenterTable,
   ItemTable,
   ItemCategoryTable,
 };

@@ -25,6 +25,13 @@ async function seed() {
       })),
     ).returningAll().execute();
 
+    await trx.insertInto('pending_donation_center').values(
+      seeds.pendingDonationCenters.map((pendingDonationCenter, i) => ({
+        ...pendingDonationCenter,
+        id: accounts[i].id,
+      })),
+    ).returningAll().execute();
+
     await trx.insertInto('item').values(
       seeds.items.map((item) => ({
         ...item,
