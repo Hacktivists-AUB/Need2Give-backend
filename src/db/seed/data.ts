@@ -65,7 +65,7 @@ async function get() {
     password: 'I\'m ready, I\'m ready',
   }].map(async (account) => ({
     ...account,
-    password: await bcrypt.hash('I\'m ready, I\'m ready', saltRounds),
+    password: await bcrypt.hash(account.password, saltRounds),
   })));
 
   const pendingAccounts: Insertable<PendingAccountTable>[] = [
