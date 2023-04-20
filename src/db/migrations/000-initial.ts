@@ -1,6 +1,6 @@
 import { sql } from 'kysely';
 import database from '../index';
-import { ItemCategories } from '../../schemas/itemCategory';
+import { ItemCategories } from '../../schemas';
 
 export async function up(db: typeof database): Promise<void> {
   await sql`CREATE EXTENSION pg_trgm;`.execute(db);
@@ -56,6 +56,17 @@ export async function up(db: typeof database): Promise<void> {
     .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`NOW()`))
     .execute();
 
+  await db.schema.createTable('follow')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('follower_id', 'integer', (col) => col
+      .references('user.id').onDelete('cascade'))
+    .addColumn('donation_center_id', 'integer', (col) => col
+      .references('donation_center.id').onDelete('cascade'))
+    .addUniqueConstraint(
+      'unique_follow_constraint',
+      ['donation_center_id', 'follower_id'],
+    ).execute();
+
   await db.insertInto('item_category').values(
     (Object.values(ItemCategories)).map((name) => ({ name })),
   ).execute();
@@ -83,6 +94,7 @@ export async function up(db: typeof database): Promise<void> {
 }
 
 export async function down(db: typeof database): Promise<void> {
+  await db.schema.dropTable('follow').ifExists().execute();
   await db.schema.dropTable('item').ifExists().execute();
   await db.schema.dropTable('item_category').ifExists().execute();
   await db.schema.dropTable('donation_center').ifExists().execute();
