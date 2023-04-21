@@ -3,6 +3,7 @@ import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import z from 'zod';
 import db from '../../db';
 import { itemSchema } from '../../schemas';
+import { accountKeysWithoutPassword } from '../utils';
 
 const itemSearchSchema = z.object({
   name: z.string().trim(),
@@ -21,13 +22,25 @@ const itemSearchSchema = z.object({
 }).partial()
   .refine((obj) => (obj.min_quantity ?? 0) <= (obj.max_quantity ?? Infinity));
 
-function getQueryFromSearchSettings(settings: z.infer<typeof itemSearchSchema>) {
+function getQueryFromSearchSettings(settings: z.infer<typeof itemSearchSchema>, userId?: number) {
   let query = db.selectFrom('item').selectAll()
-    .select((eb) => [
+    .select(({ selectFrom }) => [
       jsonObjectFrom(
-        eb.selectFrom('donation_center')
+        selectFrom('donation_center')
           .selectAll()
-          .whereRef('donation_center.id', '=', 'item.donation_center_id'),
+          .whereRef('donation_center.id', '=', 'item.donation_center_id')
+          .innerJoin('account', 'donation_center.id', 'account.id')
+          .select(accountKeysWithoutPassword)
+          .$if(
+            userId !== undefined,
+            (qb) => qb.select(
+              (eb) => eb.exists(
+                eb.selectFrom('follow')
+                  .whereRef('donation_center_id', '=', 'donation_center.id')
+                  .where('follower_id', '=', userId!),
+              ).as('following'),
+            ),
+          ),
       ).as('donation_center'),
     ]);
 
@@ -59,7 +72,7 @@ function getQueryFromSearchSettings(settings: z.infer<typeof itemSearchSchema>) 
   if (settings.offset) {
     query = query.offset(settings.offset);
   }
-  return query.orderBy('item.created_at', 'asc');
+  return query.orderBy('item.created_at', 'desc');
 }
 
 const insertableItemSchema = itemSchema.omit({ id: true, created_at: true });

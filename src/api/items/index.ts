@@ -20,10 +20,14 @@ router.get(
   createValidator({
     query: itemSearchSchema,
   }),
+  getAuthValidator('account'),
   async (req: Request<{}, {}, {}, z.infer<typeof itemSearchSchema>>, res, next) => {
     try {
       res.json({
-        items: await getQueryFromSearchSettings(req.query).execute(),
+        items: await getQueryFromSearchSettings(
+          req.query,
+          res.locals.role === 'user' ? res.locals.profile.id : undefined,
+        ).execute(),
       });
     } catch (error) {
       next(error);
