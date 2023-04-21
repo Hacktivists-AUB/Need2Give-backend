@@ -2,7 +2,7 @@
 import z from 'zod';
 import { sql } from 'kysely';
 
-import { donationCenterSchema } from '../../schemas';
+import { donationCenterSchema, userSchema } from '../../schemas';
 import { getDonationCenterQuery } from '../utils';
 
 const donationCenterSearchSchema = z.object({
@@ -19,8 +19,12 @@ function distanceExpression(latitude: number, longitude: number) {
   return sql<number>`point(longitude, latitude) <@> point(${longitude}, ${latitude})`;
 }
 
-function getQueryFromSearchSettings(settings: z.infer<typeof donationCenterSearchSchema>) {
-  let query = getDonationCenterQuery();
+function getQueryFromSearchSettings(
+  settings: z.infer<typeof donationCenterSearchSchema>,
+  userId?: z.infer<typeof userSchema.shape.id>,
+  donationCenterId?: z.infer<typeof donationCenterSchema.shape.id>,
+) {
+  let query = getDonationCenterQuery(donationCenterId);
 
   // I don't use chaining because the LSP says: Type instantiation is
   // excessively deep and possibly infinite
@@ -49,6 +53,15 @@ function getQueryFromSearchSettings(settings: z.infer<typeof donationCenterSearc
       ]);
       return (settings.open ? isOpenExpression : not(isOpenExpression));
     });
+  }
+  if (userId) {
+    query = query.select(
+      (eb) => eb.exists(
+        eb.selectFrom('follow')
+          .whereRef('donation_center_id', '=', 'donation_center.id')
+          .where('follower_id', '=', userId),
+      ).as('following'),
+    );
   }
   if (settings.limit !== undefined) {
     query = query.limit(settings.limit);

@@ -3,11 +3,10 @@ import { NoResultError } from 'kysely';
 import { DatabaseError } from 'pg';
 import z from 'zod';
 
-import { getDonationCenterQuery } from '../utils';
 import { getAuthValidator, createValidator } from '../middlewares';
 import { DonationCenterSchema, donationCenterSchema, idSchema } from '../../schemas';
 import db from '../../db';
-import { distanceExpression, donationCenterSearchSchema, getQueryFromSearchSettings } from './utils';
+import { donationCenterSearchSchema, getQueryFromSearchSettings } from './utils';
 
 const router = Router();
 
@@ -16,10 +15,15 @@ router.get(
   createValidator({
     query: donationCenterSearchSchema,
   }),
+  getAuthValidator('account'),
   async (req: Request<{}, {}, {}, z.infer<typeof donationCenterSearchSchema>>, res, next) => {
     try {
       res.json({
-        donation_centers: await getQueryFromSearchSettings(req.query).execute(),
+        donation_centers:
+          await getQueryFromSearchSettings(
+            req.query,
+            res.locals.role === 'user' ? res.locals.profile.id : undefined,
+          ).execute(),
       });
     } catch (error) {
       next(error);
@@ -27,23 +31,21 @@ router.get(
   },
 );
 
-router.get('/:id', createValidator({
+const getByIDValidator = createValidator({
   params: z.object({ id: idSchema }),
   query: donationCenterSchema.pick({ latitude: true, longitude: true })
-    .or(z.object({})),
-}), async (req, res, next) => {
+    .or(z.object({}).strict()),
+});
+
+router.get('/:id', getByIDValidator, getAuthValidator('account'), async (req, res, next) => {
   try {
     res.json({
       donation_center:
-        await getDonationCenterQuery(Number(req.params.id))
-          .$if(
-            req.query.latitude !== undefined && req.query.longitude !== undefined,
-            (qb) => qb.select(
-              distanceExpression(Number(req.query.latitude), Number(req.query.longitude))
-                .as('distance'),
-            ),
-          )
-          .executeTakeFirstOrThrow(),
+        await getQueryFromSearchSettings(
+          req.query,
+          res.locals.role === 'user' ? res.locals.profile.id : undefined,
+          Number(req.params.id),
+        ).executeTakeFirstOrThrow(),
     });
   } catch (error) {
     if (error instanceof NoResultError) {
