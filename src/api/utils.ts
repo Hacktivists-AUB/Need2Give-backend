@@ -4,6 +4,8 @@ import config from '../config';
 import {
   AccountSchema,
   accountSchema,
+  donationCenterSchema,
+  userSchema,
 } from '../schemas';
 import db from '../db';
 
@@ -35,7 +37,7 @@ const accountKeysWithoutPassword = addPrefix(
 
 function getUserQuery(id?: number) {
   return db.selectFrom('user')
-    .selectAll()
+    .select(addPrefix('user', userSchema.keyof().options))
     .$if(!!id, (qb) => qb.where('user.id', '=', id!))
     .innerJoin('account', 'user.id', 'account.id')
     .select(accountKeysWithoutPassword);
@@ -43,7 +45,7 @@ function getUserQuery(id?: number) {
 
 function getDonationCenterQuery(id?: number) {
   return db.selectFrom('donation_center')
-    .selectAll()
+    .select(addPrefix('donation_center', donationCenterSchema.keyof().options))
     .$if(!!id, (qb) => qb.where('donation_center.id', '=', id!))
     .innerJoin('account', 'donation_center.id', 'account.id')
     .select(accountKeysWithoutPassword);
