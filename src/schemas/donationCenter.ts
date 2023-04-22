@@ -1,7 +1,7 @@
 import z from 'zod';
 import idSchema from './id';
 
-const dayOpeningStatus = z.boolean().default(false).optional();
+const dayOpeningStatus = z.boolean().default(false);
 
 const donationCenterSchema = z.object({
   id: idSchema,

@@ -11,6 +11,7 @@ import {
 } from '../tables';
 import { ItemCategories } from '../../schemas/itemCategory';
 import { saltRounds } from '../../api/utils';
+import { donationCenterSchema } from '../../schemas';
 
 async function get() {
   const accounts: Insertable<AccountTable>[] = await Promise.all([{
@@ -151,7 +152,7 @@ async function get() {
     opening_days: {
       monday: true, tuesday: true, wednesday: true, thursday: true, friday: true,
     },
-  }];
+  }].map((obj) => donationCenterSchema.omit({ id: true }).parse(obj));
 
   const pendingDonationCenters: Insertable<PendingDonationCenterTable>[] = [{
     id: 1,

@@ -19,12 +19,22 @@ function distanceExpression(latitude: number, longitude: number) {
   return sql<number>`point(longitude, latitude) <@> point(${longitude}, ${latitude})`;
 }
 
+function getCurrentDay() {
+  const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  return daysOfWeek[new Date().getDay()];
+}
+
 function getQueryFromSearchSettings(
   settings: z.infer<typeof donationCenterSearchSchema>,
   userId?: z.infer<typeof userSchema.shape.id>,
   donationCenterId?: z.infer<typeof donationCenterSchema.shape.id>,
 ) {
-  let query = getDonationCenterQuery(donationCenterId);
+  let query = getDonationCenterQuery(donationCenterId)
+    .select(({ and, cmpr }) => and([
+      cmpr('donation_center.opening_time', '<=', 'now()'),
+      cmpr('donation_center.closing_time', '>', 'now()'),
+      sql`(opening_days->${getCurrentDay()})::boolean`,
+    ]).as('open'));
 
   // I don't use chaining because the LSP says: Type instantiation is
   // excessively deep and possibly infinite
@@ -50,6 +60,9 @@ function getQueryFromSearchSettings(
       const isOpenExpression = and([
         cmpr('donation_center.opening_time', '<=', 'now()'),
         cmpr('donation_center.closing_time', '>', 'now()'),
+        (settings.open)
+          ? sql`opening_days->${getCurrentDay()} = ${settings.open}`
+          : sql`not opening_days->${getCurrentDay()} = ${settings.open}`,
       ]);
       return (settings.open ? isOpenExpression : not(isOpenExpression));
     });
