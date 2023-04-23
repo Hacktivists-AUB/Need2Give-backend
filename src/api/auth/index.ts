@@ -13,7 +13,7 @@ import {
   donationCenterSchema,
   userSchema,
 } from '../../schemas';
-import { getAuthValidator } from '../middlewares';
+import { getAuthValidator, IDValidator } from '../middlewares';
 import { generateJWT, saltRounds, getDuplicateProperty } from '../utils';
 import { createValidator } from '../middlewares/requestValidator';
 
@@ -111,14 +111,14 @@ router.post(
   },
 );
 
-router.get('/approve/:accountId', async (req, res, next) => {
+router.get('/approve/:id', IDValidator, async (req, res, next) => {
   try {
-    const accountId = parseInt(req.params.accountId, 10);
+    const id = parseInt(req.params.id, 10);
 
     await db.transaction().execute(async (trx) => {
       // Retrieve pending_donation_centers data and remove the entry
       const pendingDonationCenter = await trx.deleteFrom('pending_donation_center')
-        .where('id', '=', accountId)
+        .where('id', '=', id)
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -126,7 +126,7 @@ router.get('/approve/:accountId', async (req, res, next) => {
       await trx.insertInto('donation_center').values(pendingDonationCenter).executeTakeFirstOrThrow();
     });
 
-    res.json({ status: `Donation Center (id: ${accountId}) approved successfully!` });
+    res.json({ status: `Donation Center (id: ${id}) approved successfully!` });
   } catch (error) {
     next(error);
   }
@@ -136,16 +136,16 @@ const loginValidator = createValidator({
   body: accountSchema.pick({ email: true, password: true }),
 });
 
-router.get('/reject/:accountId', async (req, res, next) => {
+router.get('/reject/:id', IDValidator, async (req, res, next) => {
   try {
-    const accountId = parseInt(req.params.accountId, 10);
+    const id = parseInt(req.params.id, 10);
 
     // Delete the account from the pending_donation_center table
     await db.deleteFrom('pending_donation_center')
-      .where('id', '=', accountId)
+      .where('id', '=', id)
       .execute();
 
-    res.json({ status: `Donation Center (id: ${accountId}) rejected successfully!` });
+    res.json({ status: `Donation Center (id: ${id}) rejected successfully!` });
   } catch (error) {
     next(error);
   }
