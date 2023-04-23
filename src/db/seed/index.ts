@@ -11,6 +11,9 @@ async function seed() {
     const accounts = await trx.insertInto('account')
       .values(seeds.accounts).returningAll().execute();
 
+    const pendingAccounts = await trx.insertInto('pending_account')
+      .values(seeds.pendingAccounts).returningAll().execute();
+
     const users = await trx.insertInto('user').values(
       seeds.users.map((user, i) => ({
         ...user,
@@ -28,7 +31,7 @@ async function seed() {
     await trx.insertInto('pending_donation_center').values(
       seeds.pendingDonationCenters.map((pendingDonationCenter, i) => ({
         ...pendingDonationCenter,
-        id: accounts[i].id,
+        id: pendingAccounts[i].id,
       })),
     ).returningAll().execute();
 

@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 
 import {
   AccountTable,
+  PendingAccountTable,
   DonationCenterTable,
   PendingDonationCenterTable,
   ItemTable,
@@ -33,6 +34,21 @@ async function get() {
     phone_number: '01 235 678',
     password: await bcrypt.hash('I was eight years old with a furry animal', saltRounds),
   }];
+
+  const pendingAccounts: Insertable<PendingAccountTable>[] = [
+    {
+      email: 'pending1@blobmail.org',
+      username: 'pending_donation_center1',
+      phone_number: '01 123 456',
+      password: await bcrypt.hash('Pending#1Password', saltRounds),
+    },
+    {
+      email: 'pending2@blobmail.org',
+      username: 'pending_donation_center2',
+      phone_number: '01 789 012',
+      password: await bcrypt.hash('Pending#2Password', saltRounds),
+    },
+  ];
 
   const users: Insertable<UserTable>[] = [{
     full_name: 'blob',
@@ -104,6 +120,7 @@ async function get() {
 
   return {
     accounts,
+    pendingAccounts,
     users,
     donationCenters,
     pendingDonationCenters,

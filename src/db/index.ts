@@ -4,6 +4,7 @@ import { Kysely, PostgresDialect } from 'kysely';
 import config from '../config';
 import {
   AccountTable,
+  PendingAccountTable,
   UserTable,
   DonationCenterTable,
   PendingDonationCenterTable,
@@ -13,6 +14,7 @@ import {
 
 type Database = {
   account: AccountTable;
+  pending_account: PendingAccountTable,
   user: UserTable;
   donation_center: DonationCenterTable;
   pending_donation_center: PendingDonationCenterTable;

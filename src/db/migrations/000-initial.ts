@@ -57,7 +57,7 @@ export async function up(db: typeof database): Promise<void> {
   ).execute();
 
   await db.schema.createTable('pending_donation_center')
-    .addColumn('id', 'integer', (col) => col.primaryKey()
+    .addColumn('id', 'serial', (col) => col.primaryKey()
       .references('account.id').onDelete('cascade'))
     .addColumn('name', 'varchar(64)', (col) => col.unique().notNull())
     .addColumn('description', 'varchar(2048)')
@@ -67,6 +67,15 @@ export async function up(db: typeof database): Promise<void> {
     .addColumn('opening_time', 'time(0)', (col) => col.notNull())
     .addColumn('closing_time', 'time(0)', (col) => col.notNull())
     .execute();
+
+  await db.schema.createTable('pending_account')
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('email', 'varchar(320)', (col) => col.unique().notNull())
+    .addColumn('phone_number', 'varchar(32)')
+    .addColumn('username', 'varchar(64)', (col) => col.unique().notNull())
+    .addColumn('password', 'varchar(128)', (col) => col.notNull())
+    .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`NOW()`))
+    .execute();
 }
 
 export async function down(db: typeof database): Promise<void> {
@@ -75,5 +84,6 @@ export async function down(db: typeof database): Promise<void> {
   await db.schema.dropTable('donation_center').ifExists().execute();
   await db.schema.dropTable('pending_donation_center').ifExists().execute();
   await db.schema.dropTable('user').ifExists().execute();
+  await db.schema.dropTable('pending_account').ifExists().execute();
   await db.schema.dropTable('account').ifExists().execute();
 }

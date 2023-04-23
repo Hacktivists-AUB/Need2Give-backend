@@ -16,6 +16,7 @@ const configSchema = z.object({
   JWT_EXPIRY_DURATION: z.string(),
   EMAIL_USER: z.string(),
   EMAIL_PASS: z.string(),
+  EMAIL_ADMIN: z.string(),
 });
 
 const config = configSchema.parse(process.env);
