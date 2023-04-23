@@ -93,21 +93,26 @@ router.post(
         return;
       }
       if (req.query.role === 'user') {
-        // If it's a user, insert the new account into the account table
-        const { password, ...insertedAccount } = (await db.insertInto('account')
-          .values({
-            ...req.body.account,
-            password: await bcrypt.hash(req.body.account.password, saltRounds),
-          }).returningAll().executeTakeFirstOrThrow());
-
-        // Validate the user profile data using the userSchema (is a user)
-        const userProfile = userSchema.parse(req.body.profile);
-
+        const inserted = await db.transaction().execute(async (trx) => {
+          const { password, ...insertedAccount } = (await trx.insertInto('account')
+            .values({
+              ...req.body.account,
+              password: await bcrypt.hash(req.body.account.password, saltRounds),
+            }).returningAll().executeTakeFirstOrThrow())!;
+          // Insert profile into pending_donation_centers OR user table
+          const insertedProfile = await trx.insertInto(req.query.role).values({
+            ...req.body.profile,
+            id: insertedAccount.id,
+          }).returningAll().executeTakeFirstOrThrow();
+          return {
+            account: insertedAccount,
+            profile: insertedProfile,
+          };
+        });
         // Send response with token if role is 'user'
         res.json({
-          account: insertedAccount,
-          profile: userProfile,
-          token: generateJWT(insertedAccount.id, 'user'),
+          ...inserted,
+          token: generateJWT(inserted.account.id, 'user'),
         });
       }
     } catch (error) {
@@ -152,7 +157,12 @@ router.get('/approve/:id', IDValidator, async (req, res, next) => {
         closing_time: pendingDonationCenter.closing_time,
       }).execute();
       // Insert the pending_account data into the account table
-      await trx.insertInto('account').values(pendingAccount).execute();
+      await trx.insertInto('account').values({
+        email: pendingAccount.email,
+        phone_number: pendingAccount.phone_number,
+        username: pendingAccount.username,
+        password: pendingAccount.password,
+      }).execute();
     });
 
     res.json({ status: `Donation Center (id: ${id}) approved successfully!` });
@@ -193,7 +203,7 @@ router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSc
     }
 
     const role = (await db.selectFrom('user')
-      .where('user.id', '=', account.id)
+      .where('user.id', '=', account.id!)
       .executeTakeFirst()) === undefined ? 'donation_center' : 'user';
 
     res.json({
