@@ -53,7 +53,7 @@ router.post(
           .values({
             ...req.body.account,
             password: await bcrypt.hash(req.body.account.password, saltRounds),
-          }).returningAll().executeTakeFirstOrThrow())!;
+          }).returningAll().executeTakeFirstOrThrow());
 
         // Insert profile into pending_donation_centers OR user table
         const insertedProfile = await trx.insertInto(req.query.role === 'donation_center' ? 'pending_donation_center' : req.query.role).values({
@@ -72,8 +72,12 @@ router.post(
         const { email } = req.body.account;
         const requestBodyString = JSON.stringify(req.body, null, 2);
 
-        const approveUrl = `http://localhost:5555/auth/approve/${inserted.account.id}`;
-        const message = `A new donation center with email ${email} has signed up. Click here to approve: ${approveUrl}\n\nRequest Body:\n${requestBodyString}`;
+        const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${inserted.account.id}`;
+        const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${inserted.account.id}`;
+        const message = `A new donation center with email ${email} has signed up.\n
+                        Click here to approve: ${approveUrl}\n
+                        Click here to reject: ${rejectUrl}\n\n
+                        Request Body:\n${requestBodyString}`;
 
         const mailOptions = {
           from: 'hacktivists.org@gmail.com', // Your Gmail email address
@@ -83,7 +87,7 @@ router.post(
         };
 
         await transporter.sendMail(mailOptions);
-        res.send('Waiting for approval from admin');
+        res.json({ status: 'Waiting for approval from admin' });
         return;
       }
 
@@ -113,27 +117,16 @@ router.get('/approve/:accountId', async (req, res, next) => {
 
     await db.transaction().execute(async (trx) => {
       // Retrieve pending_donation_centers data and remove the entry
-      const pendingDonationCenter = await trx
-        .selectFrom('pending_donation_center')
+      const pendingDonationCenter = await trx.deleteFrom('pending_donation_center')
         .where('id', '=', accountId)
-        .selectAll()
-        .executeTakeFirst();
-
-      if (!pendingDonationCenter) {
-        res.status(404);
-        next(new Error('Pending Donation Center not found'));
-        return;
-      }
-
-      await trx.deleteFrom('pending_donation_center')
-        .where('id', '=', accountId)
-        .execute();
+        .returningAll()
+        .executeTakeFirstOrThrow();
 
       // Insert the pending_donation_centers data into the donation_center table
-      await trx.insertInto('donation_center').values(pendingDonationCenter).execute();
+      await trx.insertInto('donation_center').values(pendingDonationCenter).executeTakeFirstOrThrow();
     });
 
-    res.send(`Donation Center (id: ${accountId}) approved successfully!`);
+    res.json({ status: `Donation Center (id: ${accountId}) approved successfully!` });
   } catch (error) {
     next(error);
   }
@@ -141,6 +134,21 @@ router.get('/approve/:accountId', async (req, res, next) => {
 
 const loginValidator = createValidator({
   body: accountSchema.pick({ email: true, password: true }),
+});
+
+router.get('/reject/:accountId', async (req, res, next) => {
+  try {
+    const accountId = parseInt(req.params.accountId, 10);
+
+    // Delete the account from the pending_donation_center table
+    await db.deleteFrom('pending_donation_center')
+      .where('id', '=', accountId)
+      .execute();
+
+    res.json({ status: `Donation Center (id: ${accountId}) rejected successfully!` });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post('/login', loginValidator, async (req: Request<{}, {}, Pick<AccountSchema, 'email' | 'password'>>, res: Response, next) => {
