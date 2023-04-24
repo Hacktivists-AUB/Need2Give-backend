@@ -56,18 +56,6 @@ export async function up(db: typeof database): Promise<void> {
     (Object.values(ItemCategories)).map((name) => ({ name })),
   ).execute();
 
-  await db.schema.createTable('pending_donation_center')
-    .addColumn('id', 'serial', (col) => col.primaryKey()
-      .references('account.id').onDelete('cascade'))
-    .addColumn('name', 'varchar(64)', (col) => col.unique().notNull())
-    .addColumn('description', 'varchar(2048)')
-    .addColumn('latitude', 'float8', (col) => col.notNull())
-    .addColumn('longitude', 'float8', (col) => col.notNull())
-    .addColumn('opening_days', 'jsonb', (col) => col.notNull())
-    .addColumn('opening_time', 'time(0)', (col) => col.notNull())
-    .addColumn('closing_time', 'time(0)', (col) => col.notNull())
-    .execute();
-
   await db.schema.createTable('pending_account')
     .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('email', 'varchar(320)', (col) => col.unique().notNull())
@@ -75,6 +63,18 @@ export async function up(db: typeof database): Promise<void> {
     .addColumn('username', 'varchar(64)', (col) => col.unique().notNull())
     .addColumn('password', 'varchar(128)', (col) => col.notNull())
     .addColumn('created_at', 'timestamp', (col) => col.defaultTo(sql`NOW()`))
+    .execute();
+
+  await db.schema.createTable('pending_donation_center')
+    .addColumn('id', 'serial', (col) => col.primaryKey()
+      .references('pending_account.id').onDelete('cascade'))
+    .addColumn('name', 'varchar(64)', (col) => col.unique().notNull())
+    .addColumn('description', 'varchar(2048)')
+    .addColumn('latitude', 'float8', (col) => col.notNull())
+    .addColumn('longitude', 'float8', (col) => col.notNull())
+    .addColumn('opening_days', 'jsonb', (col) => col.notNull())
+    .addColumn('opening_time', 'time(0)', (col) => col.notNull())
+    .addColumn('closing_time', 'time(0)', (col) => col.notNull())
     .execute();
 }
 
