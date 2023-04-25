@@ -11,6 +11,7 @@ enum ItemCategories {
   medication = 'medication',
   clothes = 'clothes',
   other = 'other',
+  electronics = 'electronics',
 }
 
 const itemCategorySchema = z.object({

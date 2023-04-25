@@ -5,6 +5,7 @@ import accounts from './accounts';
 import donationCenters from './donationCenters';
 import users from './users';
 import items from './items';
+import itemCategories from './itemCategories';
 import follow from './follow';
 import followers from './followers';
 import { errorHandler, notFound } from './middlewares';
@@ -18,6 +19,7 @@ app.use('/accounts', accounts);
 app.use('/donation_centers', donationCenters);
 app.use('/users', users);
 app.use('/items', items);
+app.use('/item_categories', itemCategories);
 app.use('/follow', follow);
 app.use('/followers', followers);
 
