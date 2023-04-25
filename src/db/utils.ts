@@ -1,7 +1,7 @@
 import db, { Database } from './index';
 
 const tables: (keyof Database)[] = [
-  'account', 'user', 'donation_center', 'item', 'item_category',
+  'account', 'pending_account', 'user', 'donation_center', 'pending_donation_center', 'item', 'item_category',
 ];
 
 function showArrayAsTable<T extends { id: number }>(arr: T[]) {

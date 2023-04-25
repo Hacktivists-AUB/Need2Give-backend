@@ -3,7 +3,9 @@ import bcrypt from 'bcrypt';
 
 import {
   AccountTable,
+  PendingAccountTable,
   DonationCenterTable,
+  PendingDonationCenterTable,
   ItemTable,
   UserTable,
 } from '../tables';
@@ -33,6 +35,21 @@ async function get() {
     password: await bcrypt.hash('I was eight years old with a furry animal', saltRounds),
   }];
 
+  const pendingAccounts: Insertable<PendingAccountTable>[] = [
+    {
+      email: 'pending1@blobmail.org',
+      username: 'pending_donation_center1',
+      phone_number: '01 123 456',
+      password: await bcrypt.hash('Pending#1Password', saltRounds),
+    },
+    {
+      email: 'pending2@blobmail.org',
+      username: 'pending_donation_center2',
+      phone_number: '01 789 012',
+      password: await bcrypt.hash('Pending#2Password', saltRounds),
+    },
+  ];
+
   const users: Insertable<UserTable>[] = [{
     full_name: 'blob',
     birth_date: new Date(),
@@ -59,6 +76,26 @@ async function get() {
     opening_days: {},
   }];
 
+  const pendingDonationCenters: Insertable<PendingDonationCenterTable>[] = [{
+    id: 1,
+    name: 'Pending Center 1',
+    description: 'This is a pending donation center.',
+    latitude: 40.7128,
+    longitude: -74.0060,
+    opening_days: { monday: true, thursday: true, saturday: true },
+    opening_time: '08:00:00',
+    closing_time: '17:00:00',
+  }, {
+    id: 2,
+    name: 'Pending Center 2',
+    description: 'This is another pending donation center.',
+    latitude: 12.17,
+    longitude: -30.12,
+    opening_days: { monday: true, wednesday: true, friday: true },
+    opening_time: '08:00:00',
+    closing_time: '17:00:00',
+  }];
+
   const items: Insertable<Omit<ItemTable, 'donor_id' | 'donation_center_id'>>[] = [{
     name: 'gloves',
     category: ItemCategories.clothes,
@@ -83,8 +120,10 @@ async function get() {
 
   return {
     accounts,
+    pendingAccounts,
     users,
     donationCenters,
+    pendingDonationCenters,
     items,
   };
 }
