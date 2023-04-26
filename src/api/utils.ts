@@ -78,4 +78,5 @@ export {
   getDonationCenterQuery,
   toHtmlTable,
   transporter,
+  addPrefix,
 };

@@ -2,8 +2,8 @@ import { sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import z from 'zod';
 import db from '../../db';
-import { itemSchema } from '../../schemas';
-import { accountKeysWithoutPassword } from '../utils';
+import { donationCenterSchema, itemSchema } from '../../schemas';
+import { accountKeysWithoutPassword, addPrefix } from '../utils';
 
 const itemSearchSchema = z.object({
   name: z.string().trim(),
@@ -27,7 +27,7 @@ function getQueryFromSearchSettings(settings: z.infer<typeof itemSearchSchema>, 
     .select(({ selectFrom }) => [
       jsonObjectFrom(
         selectFrom('donation_center')
-          .selectAll()
+          .select(addPrefix('donation_center', donationCenterSchema.keyof().options))
           .whereRef('donation_center.id', '=', 'item.donation_center_id')
           .innerJoin('account', 'donation_center.id', 'account.id')
           .select(accountKeysWithoutPassword)
