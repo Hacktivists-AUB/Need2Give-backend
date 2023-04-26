@@ -155,7 +155,6 @@ async function get() {
   }].map((obj) => donationCenterSchema.omit({ id: true }).parse(obj));
 
   const pendingDonationCenters: Insertable<PendingDonationCenterTable>[] = [{
-    id: 1,
     name: 'Pending Center 1',
     description: 'This is a pending donation center.',
     latitude: 40.7128,
@@ -164,7 +163,6 @@ async function get() {
     opening_time: '08:00:00',
     closing_time: '17:00:00',
   }, {
-    id: 2,
     name: 'Pending Center 2',
     description: 'This is another pending donation center.',
     latitude: 12.17,
@@ -172,7 +170,7 @@ async function get() {
     opening_days: { monday: true, wednesday: true, friday: true },
     opening_time: '08:00:00',
     closing_time: '17:00:00',
-  }];
+  }].map((obj) => donationCenterSchema.omit({ id: true }).parse(obj));
 
   const items: Insertable<Omit<ItemTable, 'donor_id' | 'donation_center_id'>>[] = [{
     name: 'gloves',
