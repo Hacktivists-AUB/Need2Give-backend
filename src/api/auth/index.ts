@@ -3,9 +3,8 @@ import bcrypt from 'bcrypt';
 import { NoResultError } from 'kysely';
 import z from 'zod';
 import { DatabaseError } from 'pg';
-import nodemailer from 'nodemailer';
-import config from '../../config';
 
+import config from '../../config';
 import db from '../../db';
 import {
   AccountSchema,
@@ -14,7 +13,13 @@ import {
   userSchema,
 } from '../../schemas';
 import { getAuthValidator, IDValidator } from '../middlewares';
-import { generateJWT, saltRounds, getDuplicateProperty } from '../utils';
+import {
+  generateJWT,
+  saltRounds,
+  getDuplicateProperty,
+  toHtmlTable,
+  transporter,
+} from '../utils';
 import { createValidator } from '../middlewares/requestValidator';
 
 const router = Router();
@@ -29,16 +34,6 @@ const signupQuerySchema = z.object({
 type SignupRequest =
   Request<{}, {}, z.infer<typeof signupBodySchema>, z.infer<typeof signupQuerySchema>>;
 
-// Define the transporter to send email
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  auth: {
-    user: config.EMAIL_USER, // Your Gmail email address from environment variable
-    pass: config.EMAIL_PASS, // Your Gmail password or app password from env
-  },
-});
-
 router.post(
   '/signup',
   createValidator({
@@ -47,7 +42,6 @@ router.post(
   }),
   async (req: SignupRequest, res: Response, next) => {
     try {
-      // Insert the new account and profile into the database
       const inserted = await db.transaction().execute(async (trx) => {
         const { password, ...insertedAccount } = await trx
           .insertInto(
@@ -76,23 +70,21 @@ router.post(
       });
 
       if (req.query.role === 'donation_center') {
-        // Send email to admin
-        const requestBodyString = JSON.stringify(inserted, null, 2);
         const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${inserted.id}`;
         const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${inserted.id}`;
-        const message = `A new donation center with email ${inserted.email} has signed up.\n
-                        Click here to approve: ${approveUrl}\n
-                        Click here to reject: ${rejectUrl}\n\n
-                        Request Body:\n${requestBodyString}`;
 
-        const mailOptions = {
+        await transporter.sendMail({
           from: config.EMAIL_USER,
           to: config.EMAIL_ADMIN,
-          subject: 'New Donation Center Sign-up',
-          text: message,
-        };
+          subject: 'New donation center Sign-up',
+          html: [
+            `A new donation center with email ${inserted.email} has requested to signed up.`,
+            `<br>Click here to approve: ${approveUrl}`,
+            `Click here to reject: ${rejectUrl}`,
+            `<br>Donation center:\n${toHtmlTable(inserted)}`,
+          ].join('<br>'),
+        });
 
-        await transporter.sendMail(mailOptions);
         res.json({ status: 'Waiting for approval from admin' });
       } else {
         res.json({

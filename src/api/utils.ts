@@ -1,5 +1,7 @@
 import { DatabaseError } from 'pg';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
+
 import config from '../config';
 import {
   AccountSchema,
@@ -51,6 +53,22 @@ function getDonationCenterQuery(id?: number) {
     .select(accountKeysWithoutPassword);
 }
 
+function toHtmlTable(inserted: Object) {
+  const rows = Object.entries(inserted)
+    .map((([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`))
+    .join('');
+  return `<table style="border: 1px solid black;">${rows}</table>`;
+}
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  auth: {
+    user: config.EMAIL_USER,
+    pass: config.EMAIL_PASS,
+  },
+});
+
 export {
   saltRounds,
   generateJWT,
@@ -58,4 +76,6 @@ export {
   accountKeysWithoutPassword,
   getUserQuery,
   getDonationCenterQuery,
+  toHtmlTable,
+  transporter,
 };
