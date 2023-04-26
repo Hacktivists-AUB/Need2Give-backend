@@ -209,6 +209,38 @@ router.get('/test', getAuthValidator('account'), async (_req, res) => {
   });
 });
 
+router.patch('/', createValidator({
+  body: accountSchema.pick({ email: true, password: true, phone_number: true }),
+}), async (req, res, next) => {
+  try {
+    const { password, ...account } = await db.selectFrom('account')
+      .selectAll()
+      .where('email', '=', req.body.email)
+      .executeTakeFirstOrThrow();
+
+    if (!await bcrypt.compare(req.body.password, password)) {
+      throw new EvalError();
+    }
+
+    const { password: filtered, ...updatedAccount } = await db.updateTable('account')
+      .set({ phone_number: req.body.phone_number })
+      .where('id', '=', account.id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    res.json({
+      account: updatedAccount,
+    });
+  } catch (error) {
+    if (error instanceof NoResultError || error instanceof EvalError) {
+      res.status(400);
+      next(new Error('Invalid credentials'));
+    } else {
+      next(error);
+    }
+  }
+});
+
 router.delete(
   '/',
   loginValidator,
