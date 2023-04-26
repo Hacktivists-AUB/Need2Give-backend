@@ -108,7 +108,7 @@ router.post(
 
 router.get('/approve/:id', IDValidator, async (req, res, next) => {
   try {
-    await db.transaction().execute(async (trx) => {
+    const inserted = await db.transaction().execute(async (trx) => {
       const { id: filteredID, ...pendingDonationCenter } = await trx
         .deleteFrom('pending_donation_center')
         .where('id', '=', parseInt(req.params.id, 10))
@@ -121,18 +121,29 @@ router.get('/approve/:id', IDValidator, async (req, res, next) => {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      // Insert the pending_account data into the account table
-      const { id: insertedId } = await trx.insertInto('account')
+      const insertedAccount = await trx.insertInto('account')
         .values(pendingAccount)
-        .returning('id')
+        .returningAll()
         .executeTakeFirstOrThrow();
-      // Insert the pending_donation_centers data into the donation_center table
-      await trx.insertInto('donation_center')
+
+      const insertedProfile = await trx.insertInto('donation_center')
         .values({
           ...pendingDonationCenter,
-          id: insertedId,
+          id: insertedAccount.id,
         })
         .executeTakeFirstOrThrow();
+
+      return {
+        ...insertedAccount,
+        ...insertedProfile,
+      };
+    });
+
+    await transporter.sendMail({
+      from: config.EMAIL_USER,
+      to: inserted.email,
+      subject: 'Need2Give Sign-up approved',
+      html: 'Your donation center account has been approved by the system admins, you can now log in.',
     });
 
     res.json({ status: 'Donation Center approved successfully!' });
@@ -149,10 +160,17 @@ router.get('/approve/:id', IDValidator, async (req, res, next) => {
 
 router.get('/reject/:id', IDValidator, async (req, res, next) => {
   try {
-    await db.deleteFrom('pending_account')
+    const { email } = await db.deleteFrom('pending_account')
       .where('id', '=', parseInt(req.params.id, 10))
-      .returning('id')
+      .returning('email')
       .executeTakeFirstOrThrow();
+
+    await transporter.sendMail({
+      from: config.EMAIL_USER,
+      to: email,
+      subject: 'Need2Give Sign-up rejected',
+      html: 'Your donation center account has been rejected by the system admins',
+    });
 
     res.json({ status: 'Donation Center rejected successfully!' });
   } catch (error) {
