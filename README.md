@@ -2,7 +2,9 @@
 
 ## Prerequisites
 Node.js
+
 npm
+
 PostgreSQL
 
 ## Setup & Installation
