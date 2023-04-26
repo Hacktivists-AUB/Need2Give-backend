@@ -11,6 +11,7 @@ const itemSearchSchema = z.object({
   max_quantity: itemSchema.shape.quantity,
   limit: z.coerce.number().positive(),
   offset: z.coerce.number().nonnegative(),
+  following: z.enum(['true', 'false']).transform((str) => str === 'true'),
   categories: z.preprocess(
     (str) => String(str).split(','),
     z.array(itemSchema.shape.category),
@@ -23,7 +24,8 @@ const itemSearchSchema = z.object({
   .refine((obj) => (obj.min_quantity ?? 0) <= (obj.max_quantity ?? Infinity));
 
 function getQueryFromSearchSettings(settings: z.infer<typeof itemSearchSchema>, userId?: number) {
-  let query = db.selectFrom('item').selectAll()
+  let query = db.selectFrom('item')
+    .select(addPrefix('item', itemSchema.keyof().options))
     .select(({ selectFrom }) => [
       jsonObjectFrom(
         selectFrom('donation_center')
@@ -42,7 +44,17 @@ function getQueryFromSearchSettings(settings: z.infer<typeof itemSearchSchema>, 
             ),
           ),
       ).as('donation_center'),
-    ]);
+    ]).$if(
+      settings.following !== undefined,
+      (qb) => qb.where(({ selectFrom, exists, not }) => {
+        const isFollowingQuery = exists(
+          selectFrom('follow')
+            .where('follow.follower_id', '=', userId!)
+            .whereRef('follow.donation_center_id', '=', 'item.donation_center_id'),
+        );
+        return (settings.following) ? isFollowingQuery : not(isFollowingQuery);
+      }),
+    );
 
   // I don't use chaining because the LSP says: Type instantiation is
   // excessively deep and possibly infinite
