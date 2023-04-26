@@ -1,17 +1,5 @@
 # Need2Give-backend
 
-This is an `inline code snippet` in the text.
-
-
-```javascript
-function sayHello(name) {
-  console.log("Hello, " + name + "!");
-}
-
-sayHello("World");
-```
-desc
-
 ## Prerequisites
 Node.js
 npm
