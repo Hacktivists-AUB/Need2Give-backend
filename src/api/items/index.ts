@@ -15,6 +15,24 @@ import {
 
 const router = Router();
 
+router.get('/stats', getAuthValidator('donation_center'), async (req, res, next) => {
+  try {
+    res.json(
+      (await db.selectFrom('item')
+        .where('item.donation_center_id', '=', res.locals.profile.id)
+        .groupBy('category')
+        .select(['category', (eb) => eb.fn.count('category').as('count')])
+        .execute()
+      ).reduce(
+        (acc, entry) => ({ ...acc, [entry.category]: entry.count }),
+        {} as { [key: string]: string | number | bigint },
+      ),
+    );
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get(
   '/',
   createValidator({
