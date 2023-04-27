@@ -3,9 +3,9 @@ import database from '../index';
 import { ItemCategories } from '../../schemas';
 
 export async function up(db: typeof database): Promise<void> {
-  await sql`CREATE EXTENSION pg_trgm;`.execute(db);
-  await sql`CREATE EXTENSION cube;`.execute(db);
-  await sql`CREATE EXTENSION earthdistance;`.execute(db);
+  await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm;`.execute(db);
+  await sql`CREATE EXTENSION IF NOT EXISTS cube;`.execute(db);
+  await sql`CREATE EXTENSION IF NOT EXISTS earthdistance;`.execute(db);
 
   await db.schema.createTable('account')
     .addColumn('id', 'serial', (col) => col.primaryKey())
