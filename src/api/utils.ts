@@ -62,7 +62,7 @@ function getDonationCenterQuery(id?: number) {
 
 function toHtmlTable(inserted: Object) {
   const rows = Object.entries(inserted)
-    .map((([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`))
+    .map((([key, value]) => `<tr><td>${key}</td><td>${JSON.stringify(value)}</td></tr>`))
     .join('');
   return `<table style="border: 1px solid black;">${rows}</table>`;
 }
