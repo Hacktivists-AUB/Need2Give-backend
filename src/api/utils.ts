@@ -50,7 +50,14 @@ function getDonationCenterQuery(id?: number) {
     .select(addPrefix('donation_center', donationCenterSchema.keyof().options))
     .$if(!!id, (qb) => qb.where('donation_center.id', '=', id!))
     .innerJoin('account', 'donation_center.id', 'account.id')
-    .select(accountKeysWithoutPassword);
+    .select(accountKeysWithoutPassword)
+    .select(
+      (eb) => eb.selectFrom('follow')
+        .select((eb2) => eb2.fn.count('follow.follower_id')
+          .filterWhereRef('follow.donation_center_id', '=', 'donation_center.id')
+          .as('follower_count'))
+        .as('follower_count'),
+    );
 }
 
 function toHtmlTable(inserted: Object) {
