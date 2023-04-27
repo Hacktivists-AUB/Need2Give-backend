@@ -1,5 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
+import { rateLimit } from 'express-rate-limit';
+
 import auth from './auth';
 import accounts from './accounts';
 import donationCenters from './donationCenters';
@@ -11,8 +13,15 @@ import followers from './followers';
 import { errorHandler, notFound } from './middlewares';
 
 const app = express();
+
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 400,
+  standardHeaders: true,
+  legacyHeaders: false,
+}));
 
 app.use('/auth', auth);
 app.use('/accounts', accounts);
