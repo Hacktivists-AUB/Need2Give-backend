@@ -15,6 +15,7 @@ module.exports = {
     sourceType: 'module'
   },
   rules: {
-    'no-console': 0
+    'no-console': 0,
+    'newline-per-chained-call': 'off'
   }
 }

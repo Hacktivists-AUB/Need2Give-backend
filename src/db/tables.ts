@@ -4,8 +4,9 @@ import {
   AccountSchema,
   ItemSchema,
   DonationCenterSchema,
+  ItemCategorySchema,
+  FollowSchema,
 } from '../schemas';
-import { ItemCategorySchema } from '../schemas/itemCategory';
 
 type Table<Item, GeneratedColumns extends keyof Item> = {
   [K in keyof Item]: K extends GeneratedColumns ? Generated<Item[K]> : Item[K];
@@ -18,6 +19,7 @@ type DonationCenterTable = Table<DonationCenterSchema, 'id'>;
 type PendingDonationCenterTable = Table<DonationCenterSchema, 'id'>;
 type ItemTable = Table<ItemSchema, 'id' | 'created_at'>;
 type ItemCategoryTable = Table<ItemCategorySchema, 'id'>;
+type FollowTable = Table<FollowSchema, 'id'>;
 
 export {
   Table,
@@ -28,4 +30,5 @@ export {
   PendingDonationCenterTable,
   ItemTable,
   ItemCategoryTable,
+  FollowTable,
 };

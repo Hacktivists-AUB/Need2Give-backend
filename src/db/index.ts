@@ -10,6 +10,7 @@ import {
   PendingDonationCenterTable,
   ItemTable,
   ItemCategoryTable,
+  FollowTable,
 } from './tables';
 
 type Database = {
@@ -20,6 +21,7 @@ type Database = {
   pending_donation_center: PendingDonationCenterTable;
   item: ItemTable;
   item_category: ItemCategoryTable;
+  follow: FollowTable;
 };
 
 const db = new Kysely<Database>({

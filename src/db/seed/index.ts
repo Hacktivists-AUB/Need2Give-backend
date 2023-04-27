@@ -1,6 +1,12 @@
 import db from '../index';
 import data from './data';
-import { deleteTableData, getRandom, logTableData } from '../utils';
+import {
+  cartesianProduct,
+  deleteTableData,
+  getRandom,
+  getRandomSample,
+  logTableData,
+} from '../utils';
 
 async function seed() {
   await deleteTableData();
@@ -42,6 +48,14 @@ async function seed() {
         donation_center_id: getRandom(donationCenters).id,
       })),
     ).execute();
+
+    const follows = getRandomSample(cartesianProduct(users, donationCenters), 10)
+      .map((follow) => ({
+        follower_id: follow.first.id,
+        donation_center_id: follow.second.id,
+      }));
+
+    await trx.insertInto('follow').values(follows).execute();
   });
   console.log('Seeding ended successfully!');
   await logTableData();

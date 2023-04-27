@@ -3,9 +3,8 @@ import bcrypt from 'bcrypt';
 import { NoResultError } from 'kysely';
 import z from 'zod';
 import { DatabaseError } from 'pg';
-import nodemailer from 'nodemailer';
-import config from '../../config';
 
+import config from '../../config';
 import db from '../../db';
 import {
   AccountSchema,
@@ -14,7 +13,13 @@ import {
   userSchema,
 } from '../../schemas';
 import { getAuthValidator, IDValidator } from '../middlewares';
-import { generateJWT, saltRounds, getDuplicateProperty } from '../utils';
+import {
+  generateJWT,
+  saltRounds,
+  getDuplicateProperty,
+  toHtmlTable,
+  transporter,
+} from '../utils';
 import { createValidator } from '../middlewares/requestValidator';
 
 const router = Router();
@@ -29,16 +34,6 @@ const signupQuerySchema = z.object({
 type SignupRequest =
   Request<{}, {}, z.infer<typeof signupBodySchema>, z.infer<typeof signupQuerySchema>>;
 
-// Define the transporter to send email
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  auth: {
-    user: config.EMAIL_USER, // Your Gmail email address from environment variable
-    pass: config.EMAIL_PASS, // Your Gmail password or app password from env
-  },
-});
-
 router.post(
   '/signup',
   createValidator({
@@ -47,8 +42,7 @@ router.post(
   }),
   async (req: SignupRequest, res: Response, next) => {
     try {
-      // Insert the new account and profile into the database
-      const inserted = await db.transaction().execute(async (trx) => {
+      await db.transaction().execute(async (trx) => {
         const { password, ...insertedAccount } = await trx
           .insertInto(
             req.query.role === 'donation_center'
@@ -69,37 +63,31 @@ router.post(
             id: insertedAccount.id,
           }).returningAll().executeTakeFirstOrThrow();
 
-        return {
-          ...insertedAccount,
-          ...insertedProfile,
-        };
+        if (req.query.role === 'donation_center') {
+          const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${insertedAccount.id}`;
+          const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${insertedAccount.id}`;
+
+          await transporter.sendMail({
+            from: config.EMAIL_USER,
+            to: config.EMAIL_ADMIN,
+            subject: 'New donation center Sign-up',
+            html: [
+              `A new donation center with email ${insertedAccount.email} has requested to signed up.`,
+              `<br>Click here to approve: ${approveUrl}`,
+              `Click here to reject: ${rejectUrl}`,
+              `<br>Donation center:\n${toHtmlTable({ ...insertedAccount, ...insertedProfile })}`,
+            ].join('<br>'),
+          });
+
+          res.json({ status: 'Waiting for approval from admin' });
+        } else {
+          res.json({
+            ...insertedAccount,
+            ...insertedProfile,
+            token: generateJWT(insertedAccount.id, 'user'),
+          });
+        }
       });
-
-      if (req.query.role === 'donation_center') {
-        // Send email to admin
-        const requestBodyString = JSON.stringify(inserted, null, 2);
-        const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${inserted.id}`;
-        const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${inserted.id}`;
-        const message = `A new donation center with email ${inserted.email} has signed up.\n
-                        Click here to approve: ${approveUrl}\n
-                        Click here to reject: ${rejectUrl}\n\n
-                        Request Body:\n${requestBodyString}`;
-
-        const mailOptions = {
-          from: config.EMAIL_USER,
-          to: config.EMAIL_ADMIN,
-          subject: 'New Donation Center Sign-up',
-          text: message,
-        };
-
-        await transporter.sendMail(mailOptions);
-        res.json({ status: 'Waiting for approval from admin' });
-      } else {
-        res.json({
-          ...inserted,
-          token: generateJWT(inserted.id, 'user'),
-        });
-      }
     } catch (error) {
       if (error instanceof DatabaseError) {
         const duplicateProperty = getDuplicateProperty(error);
@@ -116,7 +104,7 @@ router.post(
 
 router.get('/approve/:id', IDValidator, async (req, res, next) => {
   try {
-    await db.transaction().execute(async (trx) => {
+    const inserted = await db.transaction().execute(async (trx) => {
       const { id: filteredID, ...pendingDonationCenter } = await trx
         .deleteFrom('pending_donation_center')
         .where('id', '=', parseInt(req.params.id, 10))
@@ -129,18 +117,29 @@ router.get('/approve/:id', IDValidator, async (req, res, next) => {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      // Insert the pending_account data into the account table
-      const { id: insertedId } = await trx.insertInto('account')
+      const insertedAccount = await trx.insertInto('account')
         .values(pendingAccount)
-        .returning('id')
+        .returningAll()
         .executeTakeFirstOrThrow();
-      // Insert the pending_donation_centers data into the donation_center table
-      await trx.insertInto('donation_center')
+
+      const insertedProfile = await trx.insertInto('donation_center')
         .values({
           ...pendingDonationCenter,
-          id: insertedId,
+          id: insertedAccount.id,
         })
         .executeTakeFirstOrThrow();
+
+      return {
+        ...insertedAccount,
+        ...insertedProfile,
+      };
+    });
+
+    await transporter.sendMail({
+      from: config.EMAIL_USER,
+      to: inserted.email,
+      subject: 'Need2Give Sign-up approved',
+      html: 'Your donation center account has been approved by the system admins, you can now log in.',
     });
 
     res.json({ status: 'Donation Center approved successfully!' });
@@ -157,10 +156,17 @@ router.get('/approve/:id', IDValidator, async (req, res, next) => {
 
 router.get('/reject/:id', IDValidator, async (req, res, next) => {
   try {
-    await db.deleteFrom('pending_account')
+    const { email } = await db.deleteFrom('pending_account')
       .where('id', '=', parseInt(req.params.id, 10))
-      .returning('id')
+      .returning('email')
       .executeTakeFirstOrThrow();
+
+    await transporter.sendMail({
+      from: config.EMAIL_USER,
+      to: email,
+      subject: 'Need2Give Sign-up rejected',
+      html: 'Your donation center account has been rejected by the system admins',
+    });
 
     res.json({ status: 'Donation Center rejected successfully!' });
   } catch (error) {
@@ -207,6 +213,38 @@ router.get('/test', getAuthValidator('account'), async (_req, res) => {
     profile: res.locals.profile,
     status: 'Authorized',
   });
+});
+
+router.patch('/', createValidator({
+  body: accountSchema.pick({ email: true, password: true, phone_number: true }),
+}), async (req, res, next) => {
+  try {
+    const { password, ...account } = await db.selectFrom('account')
+      .selectAll()
+      .where('email', '=', req.body.email)
+      .executeTakeFirstOrThrow();
+
+    if (!await bcrypt.compare(req.body.password, password)) {
+      throw new EvalError();
+    }
+
+    const { password: filtered, ...updatedAccount } = await db.updateTable('account')
+      .set({ phone_number: req.body.phone_number })
+      .where('id', '=', account.id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    res.json({
+      account: updatedAccount,
+    });
+  } catch (error) {
+    if (error instanceof NoResultError || error instanceof EvalError) {
+      res.status(400);
+      next(new Error('Invalid credentials'));
+    } else {
+      next(error);
+    }
+  }
 });
 
 router.delete(

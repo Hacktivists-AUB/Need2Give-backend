@@ -1,7 +1,7 @@
 import z from 'zod';
 import idSchema from './id';
 
-const dayOpeningStatus = z.boolean().default(false).optional();
+const dayOpeningStatus = z.boolean().default(false);
 
 const donationCenterSchema = z.object({
   id: idSchema,
@@ -18,8 +18,8 @@ const donationCenterSchema = z.object({
   }).strict(),
   opening_time: z.string().trim(),
   closing_time: z.string().trim(),
-  latitude: z.number(),
-  longitude: z.number(),
+  latitude: z.coerce.number(),
+  longitude: z.coerce.number(),
 }).strict();
 type DonationCenterSchema = z.infer<typeof donationCenterSchema>;
 

@@ -1,5 +1,7 @@
 import { DatabaseError } from 'pg';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
+
 import config from '../config';
 import {
   AccountSchema,
@@ -29,32 +31,59 @@ function addPrefix<T extends string, K extends string>(prefix: T, keys: K[]) {
   return keys.map((s) => `${prefix}.${s}`) as `${T}.${K}`[];
 }
 
+const accountKeysWithoutPassword = addPrefix(
+  'account',
+  accountSchema.keyof().options
+    .filter((key) => key !== 'password' as keyof Omit<AccountSchema, 'password'>),
+);
+
 function getUserQuery(id?: number) {
-  return db.selectFrom('account')
-    .$if(!!id, (qb) => qb.where('account.id', '=', id!))
-    .innerJoin('user', 'user.id', 'account.id')
-    .select([
-      ...addPrefix('account', accountSchema.keyof().options
-        .filter((key) => key !== 'password') as (keyof Omit<AccountSchema, 'password'>)[]),
-      ...addPrefix('user', userSchema.keyof().options),
-    ]);
+  return db.selectFrom('user')
+    .select(addPrefix('user', userSchema.keyof().options))
+    .$if(!!id, (qb) => qb.where('user.id', '=', id!))
+    .innerJoin('account', 'user.id', 'account.id')
+    .select(accountKeysWithoutPassword);
 }
 
 function getDonationCenterQuery(id?: number) {
-  return db.selectFrom('account')
-    .$if(!!id, (qb) => qb.where('account.id', '=', id!))
-    .innerJoin('donation_center', 'donation_center.id', 'account.id')
-    .select([
-      ...addPrefix('account', accountSchema.keyof().options
-        .filter((key) => key !== 'password') as (keyof Omit<AccountSchema, 'password'>)[]),
-      ...addPrefix('donation_center', donationCenterSchema.keyof().options),
-    ]);
+  return db.selectFrom('donation_center')
+    .select(addPrefix('donation_center', donationCenterSchema.keyof().options))
+    .$if(!!id, (qb) => qb.where('donation_center.id', '=', id!))
+    .innerJoin('account', 'donation_center.id', 'account.id')
+    .select(accountKeysWithoutPassword)
+    .select(
+      (eb) => eb.selectFrom('follow')
+        .select((eb2) => eb2.fn.count('follow.follower_id')
+          .filterWhereRef('follow.donation_center_id', '=', 'donation_center.id')
+          .as('follower_count'))
+        .as('follower_count'),
+    );
 }
+
+function toHtmlTable(inserted: Object) {
+  const rows = Object.entries(inserted)
+    .map((([key, value]) => `<tr><td>${key}</td><td>${JSON.stringify(value)}</td></tr>`))
+    .join('');
+  return `<table style="border: 1px solid black;">${rows}</table>`;
+}
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  auth: {
+    user: config.EMAIL_USER,
+    pass: config.EMAIL_PASS,
+  },
+});
 
 export {
   saltRounds,
   generateJWT,
   getDuplicateProperty,
+  accountKeysWithoutPassword,
   getUserQuery,
   getDonationCenterQuery,
+  toHtmlTable,
+  transporter,
+  addPrefix,
 };

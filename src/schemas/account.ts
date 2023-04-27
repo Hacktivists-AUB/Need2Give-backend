@@ -1,4 +1,3 @@
-/* eslint-disable newline-per-chained-call */
 import z from 'zod';
 import idSchema from './id';
 

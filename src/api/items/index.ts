@@ -5,18 +5,53 @@ import z from 'zod';
 
 import db from '../../db';
 import { IDValidator, getAuthValidator } from '../middlewares';
-import { ItemSchema, idSchema, itemSchema } from '../../schemas';
+import { ItemSchema, idSchema } from '../../schemas';
 import { createValidator } from '../middlewares/requestValidator';
+import {
+  itemSearchSchema,
+  getQueryFromSearchSettings,
+  insertableItemSchema,
+} from './utils';
 
 const router = Router();
 
-router.get('/', async (_req, res, next) => {
+router.get('/stats', getAuthValidator('donation_center'), async (req, res, next) => {
   try {
-    res.json({ items: await db.selectFrom('item').selectAll().execute() });
+    res.json(
+      (await db.selectFrom('item')
+        .where('item.donation_center_id', '=', res.locals.profile.id)
+        .groupBy('category')
+        .select(['category', (eb) => eb.fn.count('category').as('count')])
+        .execute()
+      ).reduce(
+        (acc, entry) => ({ ...acc, [entry.category]: entry.count }),
+        {} as { [key: string]: string | number | bigint },
+      ),
+    );
   } catch (error) {
     next(error);
   }
 });
+
+router.get(
+  '/',
+  createValidator({
+    query: itemSearchSchema,
+  }),
+  getAuthValidator('account'),
+  async (req: Request<{}, {}, {}, z.infer<typeof itemSearchSchema>>, res, next) => {
+    try {
+      res.json({
+        items: await getQueryFromSearchSettings(
+          req.query,
+          res.locals.role === 'user' ? res.locals.profile.id : undefined,
+        ).execute(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 router.get('/:id', IDValidator, async (req, res, next) => {
   try {
@@ -32,8 +67,6 @@ router.get('/:id', IDValidator, async (req, res, next) => {
     next(error);
   }
 });
-
-const insertableItemSchema = itemSchema.omit({ id: true, created_at: true });
 
 router.post(
   '/',
