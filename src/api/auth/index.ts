@@ -42,7 +42,7 @@ router.post(
   }),
   async (req: SignupRequest, res: Response, next) => {
     try {
-      const inserted = await db.transaction().execute(async (trx) => {
+      await db.transaction().execute(async (trx) => {
         const { password, ...insertedAccount } = await trx
           .insertInto(
             req.query.role === 'donation_center'
@@ -63,35 +63,31 @@ router.post(
             id: insertedAccount.id,
           }).returningAll().executeTakeFirstOrThrow();
 
-        return {
-          ...insertedAccount,
-          ...insertedProfile,
-        };
+        if (req.query.role === 'donation_center') {
+          const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${insertedAccount.id}`;
+          const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${insertedAccount.id}`;
+
+          await transporter.sendMail({
+            from: config.EMAIL_USER,
+            to: config.EMAIL_ADMIN,
+            subject: 'New donation center Sign-up',
+            html: [
+              `A new donation center with email ${insertedAccount.email} has requested to signed up.`,
+              `<br>Click here to approve: ${approveUrl}`,
+              `Click here to reject: ${rejectUrl}`,
+              `<br>Donation center:\n${toHtmlTable({ ...insertedAccount, ...insertedProfile })}`,
+            ].join('<br>'),
+          });
+
+          res.json({ status: 'Waiting for approval from admin' });
+        } else {
+          res.json({
+            ...insertedAccount,
+            ...insertedProfile,
+            token: generateJWT(insertedAccount.id, 'user'),
+          });
+        }
       });
-
-      if (req.query.role === 'donation_center') {
-        const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${inserted.id}`;
-        const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${inserted.id}`;
-
-        await transporter.sendMail({
-          from: config.EMAIL_USER,
-          to: config.EMAIL_ADMIN,
-          subject: 'New donation center Sign-up',
-          html: [
-            `A new donation center with email ${inserted.email} has requested to signed up.`,
-            `<br>Click here to approve: ${approveUrl}`,
-            `Click here to reject: ${rejectUrl}`,
-            `<br>Donation center:\n${toHtmlTable(inserted)}`,
-          ].join('<br>'),
-        });
-
-        res.json({ status: 'Waiting for approval from admin' });
-      } else {
-        res.json({
-          ...inserted,
-          token: generateJWT(inserted.id, 'user'),
-        });
-      }
     } catch (error) {
       if (error instanceof DatabaseError) {
         const duplicateProperty = getDuplicateProperty(error);
