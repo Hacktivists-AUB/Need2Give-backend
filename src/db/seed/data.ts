@@ -8,6 +8,7 @@ import {
   PendingDonationCenterTable,
   ItemTable,
   UserTable,
+  PendingUserTable,
 } from '../tables';
 import { ItemCategories } from '../../schemas/itemCategory';
 import { saltRounds } from '../../api/utils';
@@ -69,20 +70,27 @@ async function get() {
     password: await bcrypt.hash(account.password, saltRounds),
   })));
 
-  const pendingAccounts: Insertable<PendingAccountTable>[] = [
-    {
-      email: 'pending1@blobmail.org',
-      username: 'pending_donation_center1',
-      phone_number: '01 123 456',
-      password: await bcrypt.hash('Pending#1Password', saltRounds),
-    },
-    {
-      email: 'pending2@blobmail.org',
-      username: 'pending_donation_center2',
-      phone_number: '01 789 012',
-      password: await bcrypt.hash('Pending#2Password', saltRounds),
-    },
-  ];
+  const pendingAccounts: Insertable<PendingAccountTable>[] = [{
+    email: 'pending1@blobmail.org',
+    username: 'pending_donation_center1',
+    phone_number: '01 123 456',
+    password: await bcrypt.hash('Pending#1Password', saltRounds),
+  }, {
+    email: 'pending2@blobmail.org',
+    username: 'pending_donation_center2',
+    phone_number: '01 789 012',
+    password: await bcrypt.hash('Pending#2Password', saltRounds),
+  }, {
+    email: 'pending3@blobmail.org',
+    username: 'pending_donation_center3',
+    phone_number: '01 234 567',
+    password: await bcrypt.hash('Pending#3Password', saltRounds),
+  }, {
+    email: 'pending4@blobmail.org',
+    username: 'pending_donation_center4',
+    phone_number: '01 678 901',
+    password: await bcrypt.hash('Pending#4Password', saltRounds),
+  }];
 
   const users: Insertable<UserTable>[] = [{
     full_name: 'blob',
@@ -96,6 +104,14 @@ async function get() {
   }, {
     full_name: 'brandon flowers',
     birth_date: new Date('1981-06-21'),
+  }];
+
+  const pendingUsers: Insertable<PendingUserTable>[] = [{
+    full_name: 'Ice cream man',
+    birth_date: new Date('2004-03-22'),
+  }, {
+    full_name: 'Lemonade woman',
+    birth_date: new Date('1996-08-05'),
   }];
 
   const donationCenters: Insertable<DonationCenterTable>[] = [{
@@ -233,6 +249,7 @@ async function get() {
     accounts,
     pendingAccounts,
     users,
+    pendingUsers,
     donationCenters,
     pendingDonationCenters,
     items,

@@ -11,12 +11,14 @@ import {
   ItemTable,
   ItemCategoryTable,
   FollowTable,
+  PendingUserTable,
 } from './tables';
 
 type Database = {
   account: AccountTable;
   pending_account: PendingAccountTable,
   user: UserTable;
+  pending_user: PendingUserTable,
   donation_center: DonationCenterTable;
   pending_donation_center: PendingDonationCenterTable;
   item: ItemTable;

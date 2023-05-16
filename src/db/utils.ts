@@ -4,6 +4,7 @@ const tables: (keyof Database)[] = [
   'account',
   'pending_account',
   'user',
+  'pending_user',
   'donation_center',
   'pending_donation_center',
   'follow',
