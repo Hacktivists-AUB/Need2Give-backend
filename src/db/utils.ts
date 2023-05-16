@@ -11,18 +11,20 @@ const tables: (keyof Database)[] = [
   'item_category',
 ];
 
-function showArrayAsTable<T extends { id: number }>(arr: T[]) {
+function showArrayAsTable<T extends { id: number }>(arr: T[], tableName?: string) {
   const filtered = arr.reduce(
     (acc, { id, ...x }) => { acc[id.toString()] = x; return acc; },
     {} as { [key: string]: any },
   );
+  if (tableName) console.log(`${tableName}:`);
   console.table(filtered);
 }
 
 async function logTableData() {
-  (await Promise.all(
+  const tableData = await Promise.all(
     tables.map((table) => db.selectFrom(table).selectAll().execute()),
-  )).forEach(showArrayAsTable);
+  );
+  tableData.forEach((table, index) => showArrayAsTable(table, tables[index]));
 }
 
 async function deleteTableData() {
