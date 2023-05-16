@@ -4,8 +4,7 @@ import { ItemCategories } from '../../schemas';
 
 export async function up(db: typeof database): Promise<void> {
   await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm;`.execute(db);
-  await sql`CREATE EXTENSION IF NOT EXISTS cube;`.execute(db);
-  await sql`CREATE EXTENSION IF NOT EXISTS earthdistance;`.execute(db);
+  await sql`CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;`.execute(db);
 
   await db.schema.createTable('account')
     .addColumn('id', 'serial', (col) => col.primaryKey())
@@ -103,7 +102,6 @@ export async function down(db: typeof database): Promise<void> {
   await db.schema.dropTable('pending_account').ifExists().execute();
   await db.schema.dropTable('account').ifExists().execute();
 
-  await sql`DROP EXTENSION IF EXISTS earthdistance;`.execute(db);
-  await sql`DROP EXTENSION IF EXISTS cube;`.execute(db);
+  await sql`DROP EXTENSION IF EXISTS earthdistance CASCADE;`.execute(db);
   await sql`DROP EXTENSION IF EXISTS pg_trgm;`.execute(db);
 }
