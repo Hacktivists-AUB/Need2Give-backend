@@ -1,5 +1,10 @@
 import { accountSchema, AccountSchema } from './account';
-import { donationCenterSchema, DonationCenterSchema } from './donationCenter';
+import {
+  donationCenterSchema,
+  DonationCenterSchema,
+  pendingDonationCenterSchema,
+  PendingDonationCenterSchema,
+} from './donationCenter';
 import { userSchema, UserSchema } from './user';
 import { itemSchema, ItemSchema } from './item';
 import { ItemCategories, ItemCategorySchema, itemCategorySchema } from './itemCategory';
@@ -11,6 +16,8 @@ export {
   AccountSchema,
   donationCenterSchema,
   DonationCenterSchema,
+  pendingDonationCenterSchema,
+  PendingDonationCenterSchema,
   userSchema,
   UserSchema,
   itemSchema,

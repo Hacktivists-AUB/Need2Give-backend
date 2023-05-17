@@ -11,4 +11,14 @@ const accountSchema = z.object({
 }).strict();
 type AccountSchema = z.infer<typeof accountSchema>;
 
-export { AccountSchema, accountSchema };
+const pendingAccountSchema = accountSchema.extend({
+  validation_key: z.coerce.number(),
+});
+type PendingAccountSchema = z.infer<typeof pendingAccountSchema>;
+
+export {
+  AccountSchema,
+  accountSchema,
+  PendingAccountSchema,
+  pendingAccountSchema,
+};

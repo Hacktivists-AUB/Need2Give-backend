@@ -1,3 +1,9 @@
+import db from '.';
 import { logTableData } from './utils';
 
-logTableData();
+async function dump() {
+  await logTableData();
+  await db.destroy();
+}
+
+dump();

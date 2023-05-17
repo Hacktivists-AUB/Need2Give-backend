@@ -1,6 +1,5 @@
 import { DatabaseError } from 'pg';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
 
 import config from '../config';
 import {
@@ -67,15 +66,6 @@ function toHtmlTable(inserted: Object) {
   return `<table style="border: 1px solid black;">${rows}</table>`;
 }
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  auth: {
-    user: config.EMAIL_USER,
-    pass: config.EMAIL_PASS,
-  },
-});
-
 export {
   saltRounds,
   generateJWT,
@@ -84,6 +74,5 @@ export {
   getUserQuery,
   getDonationCenterQuery,
   toHtmlTable,
-  transporter,
   addPrefix,
 };

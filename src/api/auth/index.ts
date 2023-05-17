@@ -8,19 +8,23 @@ import config from '../../config';
 import db from '../../db';
 import {
   AccountSchema,
+  PendingDonationCenterSchema,
   accountSchema,
   donationCenterSchema,
   userSchema,
 } from '../../schemas';
-import { getAuthValidator, IDValidator } from '../middlewares';
+import { getAuthValidator } from '../middlewares';
 import {
   generateJWT,
   saltRounds,
   getDuplicateProperty,
   toHtmlTable,
-  transporter,
 } from '../utils';
 import { createValidator } from '../middlewares/requestValidator';
+import transporter from './transporter';
+import approve from './approve';
+import reject from './reject';
+import { PendingAccountSchema } from '../../schemas/account';
 
 const router = Router();
 
@@ -34,6 +38,54 @@ const signupQuerySchema = z.object({
 type SignupRequest =
   Request<{}, {}, z.infer<typeof signupBodySchema>, z.infer<typeof signupQuerySchema>>;
 
+async function sendAccountValidationEmail(account: Omit<PendingAccountSchema, 'password'>, role: 'user' | 'donation_center') {
+  const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${role}/${account.id}?key=${account.validation_key}`;
+  const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${role}/${account.id}?key=${account.validation_key}`;
+
+  await transporter.sendMail({
+    from: config.EMAIL_USER,
+    to: account.email,
+    subject: 'Need2Give - Account Activation',
+    html: [
+      `Dear ${account.username},`,
+      '<br>Thank you for signing up to our app! Before we can activate your account, we need to verify your email address.',
+      '<br>To complete the account activation process, please click on the following link:',
+      `${approveUrl}`,
+      '<br>If you did not sign up for our app or believe this email has been sent to you by mistake, please click on the folowing link:',
+      `${rejectUrl}`,
+      '<br>Best regards,',
+      '<br>Hacktivists Team<br>',
+    ].join('<br>'),
+  });
+}
+
+async function sendAdminValidationEmail(account: Omit<PendingAccountSchema, 'password'>, donationCenter: PendingDonationCenterSchema) {
+  const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/admin/${account.id}?key=${donationCenter.admin_key}`;
+  const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/admin/${account.id}?key=${donationCenter.admin_key}`;
+
+  const {
+    admin_validated: adminValidated,
+    email_validated: emailValidated,
+    id,
+    ...tableContent
+  } = { ...account, ...donationCenter };
+
+  await transporter.sendMail({
+    from: config.EMAIL_USER,
+    to: config.EMAIL_ADMIN,
+    subject: `Need2Give - ${donationCenter.name} Account Validation`,
+    html: [
+      'Dear system admin,',
+      '<br>A new donation center has requested to sign up.',
+      `<br>Click here to approve: ${approveUrl}`,
+      `Click here to reject: ${rejectUrl}`,
+      `<br>Donation center:\n${toHtmlTable(tableContent)}`,
+      '<br>Best regards,',
+      'Hacktivists Team<br>',
+    ].join('<br>'),
+  });
+}
+
 router.post(
   '/signup',
   createValidator({
@@ -44,49 +96,29 @@ router.post(
     try {
       await db.transaction().execute(async (trx) => {
         const { password, ...insertedAccount } = await trx
-          .insertInto(
-            req.query.role === 'donation_center'
-              ? 'pending_account'
-              : 'account',
-          ).values({
+          .insertInto('pending_account').values({
             ...req.body.account,
             password: await bcrypt.hash(req.body.account.password, saltRounds),
           }).returningAll().executeTakeFirstOrThrow();
 
         const insertedProfile = await trx
-          .insertInto(
-            req.query.role === 'donation_center'
-              ? 'pending_donation_center'
-              : 'user',
-          ).values({
+          .insertInto(`pending_${req.query.role}`)
+          .values({
             ...req.body.profile,
             id: insertedAccount.id,
           }).returningAll().executeTakeFirstOrThrow();
 
+        await sendAccountValidationEmail(
+          insertedAccount,
+          req.query.role,
+        );
         if (req.query.role === 'donation_center') {
-          const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${insertedAccount.id}`;
-          const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${insertedAccount.id}`;
-
-          await transporter.sendMail({
-            from: config.EMAIL_USER,
-            to: config.EMAIL_ADMIN,
-            subject: 'New donation center Sign-up',
-            html: [
-              `A new donation center with email ${insertedAccount.email} has requested to signed up.`,
-              `<br>Click here to approve: ${approveUrl}`,
-              `Click here to reject: ${rejectUrl}`,
-              `<br>Donation center:\n${toHtmlTable({ ...insertedAccount, ...insertedProfile })}`,
-            ].join('<br>'),
-          });
-
-          res.json({ status: 'Waiting for approval from admin' });
-        } else {
-          res.json({
-            ...insertedAccount,
-            ...insertedProfile,
-            token: generateJWT(insertedAccount.id, 'user'),
-          });
+          await sendAdminValidationEmail(
+            insertedAccount,
+            insertedProfile as PendingDonationCenterSchema,
+          );
         }
+        res.json({ status: 'Check your email' });
       });
     } catch (error) {
       if (error instanceof DatabaseError) {
@@ -101,81 +133,6 @@ router.post(
     }
   },
 );
-
-router.get('/approve/:id', IDValidator, async (req, res, next) => {
-  try {
-    const inserted = await db.transaction().execute(async (trx) => {
-      const { id: filteredID, ...pendingDonationCenter } = await trx
-        .deleteFrom('pending_donation_center')
-        .where('id', '=', parseInt(req.params.id, 10))
-        .returningAll()
-        .executeTakeFirstOrThrow();
-
-      const { id: previousID, ...pendingAccount } = await trx
-        .deleteFrom('pending_account')
-        .where('id', '=', parseInt(req.params.id, 10))
-        .returningAll()
-        .executeTakeFirstOrThrow();
-
-      const insertedAccount = await trx.insertInto('account')
-        .values(pendingAccount)
-        .returningAll()
-        .executeTakeFirstOrThrow();
-
-      const insertedProfile = await trx.insertInto('donation_center')
-        .values({
-          ...pendingDonationCenter,
-          id: insertedAccount.id,
-        })
-        .executeTakeFirstOrThrow();
-
-      return {
-        ...insertedAccount,
-        ...insertedProfile,
-      };
-    });
-
-    await transporter.sendMail({
-      from: config.EMAIL_USER,
-      to: inserted.email,
-      subject: 'Need2Give Sign-up approved',
-      html: 'Your donation center account has been approved by the system admins, you can now log in.',
-    });
-
-    res.json({ status: 'Donation Center approved successfully!' });
-  } catch (error) {
-    if (error instanceof NoResultError) {
-      res.status(404);
-    }
-    if (error instanceof DatabaseError) {
-      res.status(400);
-    }
-    next(error);
-  }
-});
-
-router.get('/reject/:id', IDValidator, async (req, res, next) => {
-  try {
-    const { email } = await db.deleteFrom('pending_account')
-      .where('id', '=', parseInt(req.params.id, 10))
-      .returning('email')
-      .executeTakeFirstOrThrow();
-
-    await transporter.sendMail({
-      from: config.EMAIL_USER,
-      to: email,
-      subject: 'Need2Give Sign-up rejected',
-      html: 'Your donation center account has been rejected by the system admins',
-    });
-
-    res.json({ status: 'Donation Center rejected successfully!' });
-  } catch (error) {
-    if (error instanceof NoResultError) {
-      res.status(404);
-    }
-    next(error);
-  }
-});
 
 const loginValidator = createValidator({
   body: accountSchema.pick({ email: true, password: true }),
@@ -264,5 +221,8 @@ router.delete(
     }
   },
 );
+
+router.use('/approve', approve);
+router.use('/reject', reject);
 
 export default router;
