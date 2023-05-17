@@ -1,3 +1,4 @@
+import config from '../config';
 import db, { Database } from './index';
 
 const tables: (keyof Database)[] = [
@@ -22,17 +23,33 @@ function showArrayAsTable<T extends { id: number }>(arr: T[], tableName?: string
 }
 
 async function logTableData() {
-  const tableData = await Promise.all(
-    tables.map((table) => db.selectFrom(table).selectAll().execute()),
-  );
-  tableData.forEach((table, index) => showArrayAsTable(table, tables[index]));
+  if (config.NODE_ENV === 'development') {
+    const tableData = await Promise.all(
+      tables.map((table) => db.selectFrom(table).selectAll().execute()),
+    );
+    tableData.forEach((table, index) => showArrayAsTable(table, tables[index]));
+  } else {
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const table of tables) {
+      showArrayAsTable(await db.selectFrom(table).selectAll().execute(), table);
+    }
+  }
 }
 
 async function deleteTableData() {
-  (await Promise.all(
-    tables.filter((name) => name !== 'item_category')
-      .map((table) => db.deleteFrom(table).execute()),
-  ));
+  if (config.NODE_ENV === 'development') {
+    (await Promise.all(
+      tables.filter((name) => name !== 'item_category')
+        .map((table) => db.deleteFrom(table).execute()),
+    ));
+  } else {
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const table of tables) {
+      if (table !== 'item_category') {
+        await db.deleteFrom(table).execute();
+      }
+    }
+  }
 }
 
 function getRandom<T>(array: T[]) {
