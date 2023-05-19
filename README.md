@@ -1,38 +1,63 @@
-# Need2Give-backend
+# Need2Give-frontend
+<div align="center">
+  <img src="./logo.png">
+</div>
+<br/>
+
+Need2Give aims to bridge the gap between donation centers and users. Our goal is to provide a platform for users to connect with donation centers and donation centers to promote their items.
 
 ## Prerequisites
-Node.js
+- Have [NodeJS](https://nodejs.org) and [npm](https://www.npmjs.com/) installed
+- Have [PostgreSQL](https://www.postgresql.org) installed and running
 
-npm
+## Setup
+Follow these steps to setup and run the project locally:
 
-PostgreSQL
+1. Clone the repository
+```sh
+git clone https://github.com/Hacktivists-AUB/Need2Give-frontend
+```
 
-## Setup & Installation
-Follow these steps to set up and run the project locally:
+2. Install dependencies
+```sh
+npm install
+```
 
-**1. Clone the repository:** Clone the forked repository to your local machine using the following command:
+3. Create a PostgreSQL database
+To do that, simply run the following sql query:
+```sql
+CREATE DATABASE <database_name>;
+```
 
-```git clone [URL-of-your-forked-repo]```
+4. Configure environment variables
 
-**2. Install dependencies:** Navigate to the project directory and run the following command to install the required dependencies:
-
-`npm install`
-
-**3. Set up PostgreSQL:** Create a new PostgreSQL database and run it on your local machine. Make sure to note the database name, user, and password.
-
-**4. Configure environment variables:** Create a .env file in the project root directory with the same contents as the provided `.env.sample` file. Fill in the required values, such as database name, user, password, encryption key, and other settings.
+Create a `.env` file in the project root directory with the same content as the [.env.sample](.env.sample), and configure its fields according to your setup.
  
-**5. Run migrations:** In the terminal, run the following command to apply the database migrations:
+5. Run migrations
+```sh
+npm run migrate:latest
+```
+For more information on other migration options, run the following command
+```sh
+npm run migrate
+```
 
-`npm run migrate:up`
+6. Seed the database (optional)
+```sh
+npm run seed
+```
 
-**6. Seed the database:** Run the following command to seed the database with initial data:
+## Usage
+The following command should be simple enough in development:
+```sh
+npm start
+```
 
-`npm run seed`
+The following commands should be better in production for efficiency purposes:
+```sh
+npx tsc --outDir build
+node build/index.js
+```
 
-**7. Start the server:** Finally, run the following command to start the backend server:
-
-`npm start`
-
-Now, your backend server should be running at http://localhost:5555.
-
+## License
+This project is licensed under the [GNU General Public License v3.0](https://github.com/Hacktivists-AUB/Need2Give-frontend/blob/main/LICENSE).

@@ -32,7 +32,7 @@ function getQueryFromSearchSettings(
     .select(({ and, cmpr }) => and([
       cmpr('donation_center.opening_time', '<=', 'now()'),
       cmpr('donation_center.closing_time', '>', 'now()'),
-      sql`(opening_days->${getCurrentDay()})::boolean`,
+      sql`(opening_days->>${getCurrentDay()})::boolean`,
     ]).as('open'));
 
   // I don't use chaining because the LSP says: Type instantiation is

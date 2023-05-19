@@ -11,7 +11,7 @@ const configSchema = z.object({
   POSTGRES_PORT: z.coerce.number(),
   SERVER_PORT: z.coerce.number(),
   SERVER_HOST: z.string(),
-  NODE_ENV: z.enum(['production', 'development']).optional(),
+  NODE_ENV: z.enum(['production', 'development']).default('development'),
   JWT_SECRET_KEY: z.string(),
   JWT_EXPIRY_DURATION: z.string(),
   EMAIL_USER: z.string(),

@@ -38,10 +38,14 @@ const signupQuerySchema = z.object({
 type SignupRequest =
   Request<{}, {}, z.infer<typeof signupBodySchema>, z.infer<typeof signupQuerySchema>>;
 
-async function sendAccountValidationEmail(account: Omit<PendingAccountSchema, 'password'>, role: 'user' | 'donation_center') {
-  const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/${role}/${account.id}?key=${account.validation_key}`;
-  const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/${role}/${account.id}?key=${account.validation_key}`;
+function getValidationUrl(id: number, key: number, action: 'approve' | 'reject', role: 'user' | 'donation_center' | 'admin') {
+  const root = (config.NODE_ENV === 'development')
+    ? `${config.SERVER_HOST}:${config.SERVER_PORT}`
+    : config.SERVER_HOST;
+  return `${root}/auth/${action}/${role}/${id}?key=${key} `;
+}
 
+async function sendAccountValidationEmail(account: Omit<PendingAccountSchema, 'password'>, role: 'user' | 'donation_center') {
   await transporter.sendMail({
     from: config.EMAIL_USER,
     to: account.email,
@@ -50,9 +54,9 @@ async function sendAccountValidationEmail(account: Omit<PendingAccountSchema, 'p
       `Dear ${account.username},`,
       '<br>Thank you for signing up to our app! Before we can activate your account, we need to verify your email address.',
       '<br>To complete the account activation process, please click on the following link:',
-      `${approveUrl}`,
+      getValidationUrl(account.id, account.validation_key, 'approve', role),
       '<br>If you did not sign up for our app or believe this email has been sent to you by mistake, please click on the folowing link:',
-      `${rejectUrl}`,
+      getValidationUrl(account.id, account.validation_key, 'reject', role),
       '<br>Best regards,',
       '<br>Hacktivists Team<br>',
     ].join('<br>'),
@@ -60,12 +64,11 @@ async function sendAccountValidationEmail(account: Omit<PendingAccountSchema, 'p
 }
 
 async function sendAdminValidationEmail(account: Omit<PendingAccountSchema, 'password'>, donationCenter: PendingDonationCenterSchema) {
-  const approveUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/approve/admin/${account.id}?key=${donationCenter.admin_key}`;
-  const rejectUrl = `http://${config.SERVER_HOST}:${config.SERVER_PORT}/auth/reject/admin/${account.id}?key=${donationCenter.admin_key}`;
-
   const {
     admin_validated: adminValidated,
     email_validated: emailValidated,
+    admin_key: adminKey,
+    validation_key: validationKey,
     id,
     ...tableContent
   } = { ...account, ...donationCenter };
@@ -77,8 +80,10 @@ async function sendAdminValidationEmail(account: Omit<PendingAccountSchema, 'pas
     html: [
       'Dear system admin,',
       '<br>A new donation center has requested to sign up.',
-      `<br>Click here to approve: ${approveUrl}`,
-      `Click here to reject: ${rejectUrl}`,
+      '<br>Click here to approve:',
+      getValidationUrl(account.id, donationCenter.admin_key, 'approve', 'admin'),
+      '<br>Click here to reject:',
+      getValidationUrl(account.id, donationCenter.admin_key, 'reject', 'admin'),
       `<br>Donation center:\n${toHtmlTable(tableContent)}`,
       '<br>Best regards,',
       'Hacktivists Team<br>',
